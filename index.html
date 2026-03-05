@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Air Quality Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=Prompt:wght@300;400;600&display=swap');
+
+  :root {
+    --bg: #f5f7ff;
+    --bg2: #eef1ff;
+    --surface: #ffffff;
+    --surface2: #f8faff;
+    --blue: #4361ee;
+    --blue-light: #dde3ff;
+    --teal: #06b6d4;
+    --teal-light: #cffafe;
+    --orange: #f97316;
+    --orange-light: #ffedd5;
+    --green: #10b981;
+    --green-light: #d1fae5;
+    --yellow: #f59e0b;
+    --yellow-light: #fef3c7;
+    --red: #ef4444;
+    --red-light: #fee2e2;
+    --text: #0f172a;
+    --text2: #475569;
+    --muted: #94a3b8;
+    --border: #e2e8f0;
+    --shadow-sm: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+    --shadow: 0 4px 16px rgba(67,97,238,0.08), 0 1px 4px rgba(15,23,42,0.04);
+    --shadow-hover: 0 12px 32px rgba(67,97,238,0.14), 0 2px 8px rgba(15,23,42,0.06);
+    --radius: 20px;
+    --radius-sm: 12px;
+  }
+
+  [data-theme="dark"] {
+    --bg: #080c18;
+    --bg2: #0d1225;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --blue: #6180f5;
+    --blue-light: #1a2250;
+    --teal: #22d3ee;
+    --teal-light: #083344;
+    --orange: #fb923c;
+    --orange-light: #2a1500;
+    --green: #34d399;
+    --green-light: #052e16;
+    --yellow: #fbbf24;
+    --yellow-light: #1c1400;
+    --red: #f87171;
+    --red-light: #1f0909;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --muted: #334155;
+    --border: #1e293b;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+    --shadow: 0 4px 16px rgba(0,0,0,0.4);
+    --shadow-hover: 0 12px 32px rgba(0,0,0,0.5);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body, .stat-card, .chart-card, .table-card, .url-bar, header,
+  .avg-card, .aqi-card, .std-card, .line-chart-card, .alert-bar,
+  .filter-bar, .modal-box, .dropdown-menu {
+    transition: background 0.3s, color 0.3s, box-shadow 0.3s, border-color 0.3s;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Prompt', sans-serif;
+    min-height: 100vh;
+    padding: 20px;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% -10%, rgba(67,97,238,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 110%, rgba(6,182,212,0.05) 0%, transparent 60%);
+  }
+
+  .wrapper { max-width: 1140px; margin: 0 auto; }
+
+  /* ── HEADER ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 16px 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+
+  .logo-area { display: flex; align-items: center; gap: 14px; }
+
+  .logo-icon {
+    width: 46px; height: 46px;
+    background: linear-gradient(135deg, var(--blue) 0%, var(--teal) 100%);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    box-shadow: 0 4px 14px rgba(67,97,238,0.35);
+  }
+
+  .logo-area h1 {
+    font-family: 'Kanit', sans-serif;
+    font-size: 1.15rem; font-weight: 800;
+    color: var(--text); letter-spacing: -0.3px;
+  }
+
+  .logo-area p { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
+
+  .status-pill {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--green-light);
+    border: 1.5px solid rgba(16,185,129,0.3);
+    border-radius: 999px; padding: 6px 14px;
+    font-size: 0.72rem; font-weight: 600; color: #065f46;
+  }
+  [data-theme="dark"] .status-pill { color: var(--green); }
+
+  .status-pill .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 3px rgba(16,185,129,0.25);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(0.85)} }
+  @keyframes spin   { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes slideUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+
+  .spin { display: inline-block; animation: spin 0.7s linear infinite; }
+
+  /* ── BUTTONS ── */
+  .settings-btn, .theme-toggle, .qr-btn {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 999px; padding: 7px 15px; cursor: pointer;
+    font-family: 'Prompt', sans-serif; font-size: 0.78rem; font-weight: 600;
+    color: var(--text2); display: flex; align-items: center; gap: 6px;
+    transition: all 0.2s;
+  }
+  .settings-btn:hover, .theme-toggle:hover, .qr-btn:hover {
+    background: var(--blue-light); color: var(--blue); border-color: var(--blue);
+  }
+  .settings-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* ── DROPDOWN ── */
+  .dropdown-wrap { position: relative; }
+  .dropdown-btn {
+    background: var(--surface2); border: 1.5px solid var(--border);
+    border-radius: 999px; padding: 7px 15px; cursor: pointer;
+    font-family: 'Prompt', sans-serif; font-size: 0.78rem; font-weight: 600;
+    color: var(--text2); display: flex; align-items: center; gap: 6px;
+    transition: all 0.2s;
+  }
+  .dropdown-btn:hover { background: var(--blue-light); color: var(--blue); border-color: var(--blue); }
+  .dropdown-menu {
+    display: none; position: absolute; right: 0; top: calc(100% + 8px);
+    background: var(--surface); border-radius: var(--radius-sm);
+    box-shadow: 0 8px 32px rgba(15,23,42,0.12);
+    padding: 6px; min-width: 170px; z-index: 999;
+    border: 1px solid var(--border);
+  }
+  .dropdown-menu.open { display: block; animation: fadeIn 0.15s ease; }
+  .dropdown-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px; cursor: pointer;
+    font-family: 'Prompt', sans-serif; font-size: 0.8rem; font-weight: 500;
+    color: var(--text2); transition: background 0.15s;
+    border: none; background: none; width: 100%; text-align: left;
+  }
+  .dropdown-item:hover { background: var(--bg2); color: var(--text); }
+
+  /* ── URL BAR ── */
+  .url-bar { display: none; }
+
+  /* ── STAT CARDS ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px; margin-bottom: 16px;
+  }
+
+  .stat-card {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 22px 20px; box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative; overflow: hidden;
+    animation: slideUp 0.4s ease both;
+  }
+
+  .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+
+  .stat-card::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 3px; border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .stat-card.pm25::before { background: linear-gradient(90deg, var(--blue), #7c8ef8); }
+  .stat-card.pm10::before { background: linear-gradient(90deg, var(--teal), #67e8f9); }
+  .stat-card.temp::before  { background: linear-gradient(90deg, var(--orange), #fbbf24); }
+  .stat-card.humi::before  { background: linear-gradient(90deg, #3b82f6, #8b5cf6); }
+
+  .stat-card::after {
+    content: attr(data-icon);
+    position: absolute; right: 16px; top: 16px;
+    font-size: 2rem; opacity: 0.12;
+  }
+
+  .stat-label {
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .stat-card.pm25 .stat-label { color: var(--blue); }
+  .stat-card.pm10 .stat-label { color: var(--teal); }
+  .stat-card.temp .stat-label { color: var(--orange); }
+  .stat-card.humi .stat-label { color: #3b82f6; }
+
+  .stat-val {
+    font-family: 'Kanit', sans-serif;
+    font-size: 2.6rem; font-weight: 800; line-height: 1; margin-bottom: 4px;
+    letter-spacing: -1px;
+  }
+  .stat-card.pm25 .stat-val { color: var(--blue); }
+  .stat-card.pm10 .stat-val { color: var(--teal); }
+  .stat-card.temp .stat-val { color: var(--orange); }
+  .stat-card.humi .stat-val { color: #3b82f6; }
+
+  .stat-unit { font-size: 0.68rem; color: var(--muted); margin-bottom: 10px; }
+
+  .stat-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.3px;
+  }
+  .badge-good   { background: var(--green-light);  color: #065f46; }
+  .badge-warn   { background: var(--yellow-light); color: #92400e; }
+  .badge-danger { background: var(--red-light);    color: #991b1b; }
+
+  /* ── CHART CARDS ── */
+  .charts-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px; margin-bottom: 16px;
+  }
+
+  .chart-card {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 20px; box-shadow: var(--shadow); text-align: center;
+    border: 1px solid var(--border);
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: slideUp 0.5s ease both;
+  }
+  .chart-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+
+  .chart-title {
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; margin-bottom: 10px; color: var(--muted);
+  }
+
+  .chart-wrap {
+    position: relative; height: 180px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .chart-wrap canvas { max-width: 180px !important; }
+
+  /* ── SECTION CARDS ── */
+  .avg-card, .aqi-card, .std-card, .line-chart-card, .table-card, .ai-card {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 22px; box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .avg-title, .aqi-title, .std-title, .line-chart-title, .table-title, .ai-title {
+    font-family: 'Kanit', sans-serif;
+    font-size: 0.95rem; font-weight: 800;
+    color: var(--text); margin-bottom: 16px;
+    letter-spacing: -0.2px;
+  }
+
+  /* ── AVERAGE ── */
+  .avg-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;
+  }
+  .avg-item {
+    background: var(--bg2); border-radius: var(--radius-sm);
+    padding: 14px 16px; text-align: center;
+    border: 1px solid var(--border);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .avg-item:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+  .avg-item-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .avg-item-val   { font-family: 'Kanit', sans-serif; font-size: 1.7rem; font-weight: 800; line-height: 1; letter-spacing: -0.5px; }
+  .avg-item-unit  { font-size: 0.62rem; color: var(--muted); margin-top: 3px; }
+  .avg-item-sub   { font-size: 0.6rem; color: var(--muted); margin-top: 4px; }
+  .avg-item.pm25 .avg-item-label { color: var(--blue); }
+  .avg-item.pm25 .avg-item-val   { color: var(--blue); }
+  .avg-item.pm10 .avg-item-label { color: var(--teal); }
+  .avg-item.pm10 .avg-item-val   { color: var(--teal); }
+  .avg-item.temp .avg-item-label { color: var(--orange); }
+  .avg-item.temp .avg-item-val   { color: var(--orange); }
+  .avg-item.humi .avg-item-label { color: #3b82f6; }
+  .avg-item.humi .avg-item-val   { color: #3b82f6; }
+
+  /* ── AQI ── */
+  .aqi-grid  { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .aqi-item  { border-radius: var(--radius-sm); padding: 18px; text-align: center; transition: transform 0.2s; }
+  .aqi-item:hover { transform: translateY(-2px); }
+  .aqi-item-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; opacity: 0.75; }
+  .aqi-item-val   { font-family: 'Kanit', sans-serif; font-size: 2.4rem; font-weight: 800; line-height: 1; letter-spacing: -1px; }
+  .aqi-item-desc  { font-size: 0.78rem; margin-top: 6px; font-weight: 600; }
+  .aqi-item-sub   { font-size: 0.62rem; margin-top: 3px; opacity: 0.7; }
+  .aqi-good     { background: var(--green-light); color: #065f46; }
+  .aqi-moderate { background: var(--yellow-light); color: #92400e; }
+  .aqi-sensitive{ background: var(--orange-light); color: #9a3412; }
+  .aqi-unhealthy{ background: var(--red-light); color: #991b1b; }
+  .aqi-very     { background: #f5f3ff; color: #5b21b6; }
+  .aqi-hazardous{ background: #1f0909; color: #fca5a5; }
+  [data-theme="dark"] .aqi-good { color: var(--green); }
+  [data-theme="dark"] .aqi-moderate { color: var(--yellow); }
+
+  /* ── STANDARDS ── */
+  .std-grid  { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .std-item  { background: var(--bg2); border-radius: var(--radius-sm); padding: 16px; border: 1px solid var(--border); }
+  .std-item-title { font-size: 0.72rem; font-weight: 700; color: var(--text2); margin-bottom: 12px; }
+  .std-row   { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .std-row-label { font-size: 0.7rem; color: var(--muted); }
+  .std-row-val   { font-size: 0.7rem; font-weight: 700; font-family: 'Kanit', sans-serif; }
+  .std-row-bar   { height: 5px; border-radius: 3px; margin-top: 3px; background: var(--border); overflow: hidden; }
+  .std-row-fill  { height: 100%; border-radius: 3px; transition: width 0.8s cubic-bezier(.4,0,.2,1); }
+  .fill-good    { background: var(--green); }
+  .fill-warn    { background: var(--yellow); }
+  .fill-danger  { background: var(--red); }
+
+  /* ── LINE CHART ── */
+  .line-chart-card { animation: slideUp 0.7s ease both; }
+  .line-chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .line-chart-wrap { position: relative; height: 250px; }
+  .line-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .line-tab {
+    padding: 5px 14px; border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: var(--bg2); color: var(--text2); cursor: pointer;
+    font-family: 'Prompt', sans-serif; font-size: 0.72rem; font-weight: 600;
+    transition: all 0.2s;
+  }
+  .line-tab.active { background: var(--blue); color: #fff; border-color: var(--blue); box-shadow: 0 2px 10px rgba(67,97,238,0.3); }
+
+  /* ── TABLE ── */
+  .table-card { animation: slideUp 0.6s ease both; }
+  .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .row-count {
+    background: var(--blue-light); color: var(--blue);
+    border-radius: 999px; padding: 3px 12px; font-size: 0.68rem; font-weight: 700;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  thead th {
+    font-size: 0.62rem; font-weight: 700; color: var(--muted);
+    letter-spacing: 1.2px; text-transform: uppercase;
+    text-align: left; padding: 8px 12px;
+    border-bottom: 2px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.12s; }
+  tbody tr:hover { background: var(--bg2); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody td { padding: 10px 12px; }
+  tbody td:first-child { color: var(--muted); font-size: 0.72rem; }
+  .val-pm25 { color: var(--blue);   font-weight: 700; }
+  .val-pm10 { color: var(--teal);   font-weight: 700; }
+  .val-temp { color: var(--orange); font-weight: 700; }
+  .val-humi { color: #3b82f6;       font-weight: 700; }
+  .pill { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 0.62rem; font-weight: 700; }
+
+  /* ── EXPORT BTN ── */
+  .export-btn {
+    background: linear-gradient(135deg, #ef4444, #f97316);
+    color: #fff; border: none; border-radius: 999px; padding: 7px 16px;
+    font-family: 'Prompt', sans-serif; font-size: 0.75rem; font-weight: 700;
+    cursor: pointer; transition: opacity 0.2s, transform 0.1s;
+    box-shadow: 0 3px 10px rgba(239,68,68,0.3);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .export-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  /* ── ALERT ── */
+  .alert-bar {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 16px 20px; box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    margin-bottom: 16px; display: flex;
+    align-items: center; gap: 14px; flex-wrap: wrap;
+    border-left: 4px solid var(--blue);
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .alert-bar.danger { border-left-color: var(--red); background: var(--red-light); }
+  .alert-bar.warn   { border-left-color: var(--yellow); background: var(--yellow-light); }
+  .alert-label { font-family: 'Kanit', sans-serif; font-size: 0.82rem; font-weight: 700; color: var(--text); white-space: nowrap; }
+  .alert-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .alert-input {
+    width: 72px; background: var(--bg2); border: 1.5px solid var(--border);
+    border-radius: 8px; padding: 6px 10px; color: var(--text2);
+    font-family: 'Prompt', sans-serif; font-size: 0.8rem; outline: none; text-align: center;
+    transition: border-color 0.2s;
+  }
+  .alert-input:focus { border-color: var(--blue); }
+  .alert-toggle {
+    background: var(--bg2); border: 1.5px solid var(--border);
+    border-radius: 999px; padding: 6px 14px; cursor: pointer;
+    font-family: 'Prompt', sans-serif; font-size: 0.75rem; font-weight: 600;
+    color: var(--text2); transition: all 0.2s;
+  }
+  .alert-toggle.on { background: var(--green); border-color: var(--green); color: #fff; }
+  .alert-status { font-size: 0.75rem; color: var(--muted); margin-left: auto; font-family: 'Prompt', sans-serif; }
+  .alert-status.firing { color: var(--red); font-weight: 700; animation: pulse 1s infinite; }
+
+  /* ── FILTER ── */
+  .filter-bar {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 14px 18px; box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    margin-bottom: 14px; display: flex;
+    align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .filter-label { font-size: 0.75rem; font-weight: 700; color: var(--text2); white-space: nowrap; }
+  .filter-input, .search-input {
+    background: var(--bg2); border: 1.5px solid var(--border);
+    border-radius: 8px; padding: 7px 12px; color: var(--text2);
+    font-family: 'Prompt', sans-serif; font-size: 0.78rem; outline: none;
+    transition: border-color 0.2s;
+  }
+  .filter-input:focus, .search-input:focus { border-color: var(--blue); }
+  .search-input { min-width: 180px; }
+  .filter-btn {
+    background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 7px 16px;
+    font-family: 'Prompt', sans-serif; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    transition: opacity 0.2s; box-shadow: 0 2px 8px rgba(67,97,238,0.3);
+  }
+  .filter-btn:hover { opacity: 0.88; }
+  .filter-reset {
+    background: var(--bg2); color: var(--text2); border: 1.5px solid var(--border);
+    border-radius: 8px; padding: 7px 14px;
+    font-family: 'Prompt', sans-serif; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .filter-reset:hover { background: var(--blue-light); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(15,23,42,0.5); z-index: 1000;
+    align-items: center; justify-content: center;
+    backdrop-filter: blur(6px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 28px; width: 90%; max-width: 480px;
+    box-shadow: 0 24px 64px rgba(15,23,42,0.25);
+    border: 1px solid var(--border);
+    animation: slideUp 0.2s ease;
+  }
+  .modal-title { font-family: 'Kanit', sans-serif; font-size: 1.1rem; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+  .modal-sub   { font-size: 0.78rem; color: var(--muted); margin-bottom: 16px; }
+  .modal-input {
+    width: 100%; background: var(--bg2); border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 10px 14px; color: var(--text2);
+    font-family: 'Prompt', sans-serif; font-size: 0.78rem; outline: none;
+    margin-bottom: 14px; transition: border-color 0.2s;
+  }
+  .modal-input:focus { border-color: var(--blue); }
+  .modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+  .modal-btn-cancel {
+    background: var(--bg2); color: var(--text2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 9px 18px; cursor: pointer;
+    font-family: 'Prompt', sans-serif; font-size: 0.8rem; font-weight: 600;
+  }
+  .modal-btn-save {
+    background: linear-gradient(135deg, var(--blue), var(--teal));
+    color: #fff; border: none; border-radius: 10px; padding: 9px 20px;
+    cursor: pointer; font-family: 'Kanit', sans-serif;
+    font-size: 0.82rem; font-weight: 700;
+    box-shadow: 0 4px 14px rgba(67,97,238,0.3);
+  }
+
+  /* ── QR ── */
+  .qr-btn { /* inherits from settings-btn */ }
+  .qr-modal-box { text-align: center; }
+  .qr-modal-box img { border-radius: 12px; margin: 12px 0; box-shadow: var(--shadow); }
+  .qr-url { font-size: 0.68rem; color: var(--muted); word-break: break-all; }
+
+  /* ── MESSAGES ── */
+  .msg { text-align: center; padding: 40px; font-size: 0.85rem; color: var(--muted); }
+  .msg.error { color: var(--red); }
+  .last-update { font-size: 0.68rem; color: var(--muted); text-align: right; margin-top: 12px; }
+
+  /* ── MOBILE ── */
+  @media (max-width: 600px) {
+    body { padding: 12px; }
+    header { padding: 14px 16px; gap: 8px; }
+    .logo-icon { width: 38px; height: 38px; font-size: 1.1rem; }
+    .logo-area h1 { font-size: 0.95rem; }
+    .stat-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat-card { padding: 16px 14px; }
+    .stat-val  { font-size: 2rem; }
+    .avg-grid  { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .avg-item-val { font-size: 1.4rem; }
+    .charts-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .chart-wrap  { height: 140px; }
+    .chart-wrap canvas { max-width: 140px !important; }
+    .table-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .aqi-grid { grid-template-columns: 1fr 1fr; }
+    .std-grid { grid-template-columns: 1fr; }
+    .filter-bar { flex-direction: column; align-items: flex-start; }
+    .search-input { min-width: 100%; }
+    .alert-bar { flex-direction: column; align-items: flex-start; }
+    .alert-status { margin-left: 0; }
+    .line-chart-header { flex-direction: column; align-items: flex-start; }
+    .line-chart-wrap { height: 200px; }
+  }
+
+  .hidden-until-load {
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+  .hidden-until-load.revealed {
+    opacity: 1; pointer-events: auto;
+  }
+
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div class="logo-area">
+      <div class="logo-icon">💨</div>
+      <div>
+        <h1>Air Quality Monitor</h1>
+        <p>PM2.5 / PM10 — Realtime Dashboard</p>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div class="status-pill"><div class="dot"></div><span id="statusText">READY</span></div>
+      <button class="settings-btn" id="refreshBtn" onclick="refreshClick()">⟳ Refresh</button>
+      <div class="dropdown-wrap">
+        <button class="dropdown-btn" onclick="toggleDropdown()">⚙️ เมนู ▾</button>
+        <div class="dropdown-menu" id="dropdownMenu">
+          <button class="dropdown-item" onclick="showQR();closeDropdown()">📸 QR Code</button>
+          <button class="dropdown-item" onclick="openModal();closeDropdown()">⚙️ ตั้งค่า URL</button>
+          <button class="dropdown-item" onclick="toggleTheme();closeDropdown()" id="themeBtn">🌙 โหมดมืด</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="url-bar">
+    <input type="text" id="sheetUrl" placeholder="วาง Apps Script Web App URL ที่นี่..."/>
+    <button onclick="loadData()">🔄 โหลดข้อมูล</button>
+  </div>
+
+  <!-- Alert Bar -->
+  <div class="alert-bar" id="alertBar">
+    <div class="alert-label">🔔 แจ้งเตือนเสียง</div>
+    <div class="alert-controls">
+      <span style="font-size:0.78rem;color:var(--text2);">PM2.5 เกิน</span>
+      <input class="alert-input" type="number" id="alertThreshold" value="37" min="1" max="200"/>
+      <span style="font-size:0.78rem;color:var(--text2);">μg/m³</span>
+      <button class="alert-toggle" id="alertToggle" onclick="toggleAlert()">🔕 ปิดอยู่</button>
+    </div>
+    <div class="alert-status" id="alertStatus">— รอข้อมูล</div>
+  </div>
+
+  <div class="stat-grid hidden-until-load">
+    <div class="stat-card pm25" data-icon="🌫️">
+      <div class="stat-label">PM2.5</div>
+      <div class="stat-val" id="valPM25">—</div>
+      <div class="stat-unit">μg/m³</div>
+      <div id="badgePM25"></div>
+    </div>
+    <div class="stat-card pm10" data-icon="💧">
+      <div class="stat-label">PM10</div>
+      <div class="stat-val" id="valPM10">—</div>
+      <div class="stat-unit">μg/m³</div>
+      <div id="badgePM10"></div>
+    </div>
+    <div class="stat-card temp" data-icon="🌡️">
+      <div class="stat-label">Temperature</div>
+      <div class="stat-val" id="valTemp">—</div>
+      <div class="stat-unit">°C</div>
+    </div>
+    <div class="stat-card humi" data-icon="💦">
+      <div class="stat-label">Humidity</div>
+      <div class="stat-val" id="valHumi">—</div>
+      <div class="stat-unit">%RH</div>
+    </div>
+  </div>
+
+  <!-- AQI Card -->
+  <div class="aqi-card hidden-until-load">
+    <div class="aqi-title">🌡️ ดัชนีคุณภาพอากาศ (AQI)</div>
+    <div class="aqi-grid">
+      <div class="aqi-item" id="aqiPM25box">
+        <div class="aqi-item-label">AQI จาก PM2.5</div>
+        <div class="aqi-item-val" id="aqiPM25val">—</div>
+        <div class="aqi-item-desc" id="aqiPM25desc">—</div>
+        <div class="aqi-item-sub" id="aqiPM25sub"></div>
+      </div>
+      <div class="aqi-item" id="aqiPM10box">
+        <div class="aqi-item-label">AQI จาก PM10</div>
+        <div class="aqi-item-val" id="aqiPM10val">—</div>
+        <div class="aqi-item-desc" id="aqiPM10desc">—</div>
+        <div class="aqi-item-sub" id="aqiPM10sub"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Standards Comparison Card -->
+  <div class="std-card hidden-until-load">
+    <div class="std-title">📊 เปรียบเทียบกับมาตรฐาน</div>
+    <div class="std-grid">
+      <div class="std-item">
+        <div class="std-item-title">🌍 WHO (2021)</div>
+        <div class="std-row">
+          <span class="std-row-label">PM2.5 (24hr)</span>
+          <span class="std-row-val" id="stdWhoPM25">—</span>
+        </div>
+        <div class="std-row-bar"><div class="std-row-fill" id="fillWhoPM25" style="width:0%"></div></div>
+        <div class="std-row" style="margin-top:8px;">
+          <span class="std-row-label">PM10 (24hr)</span>
+          <span class="std-row-val" id="stdWhoPM10">—</span>
+        </div>
+        <div class="std-row-bar"><div class="std-row-fill" id="fillWhoPM10" style="width:0%"></div></div>
+      </div>
+      <div class="std-item">
+        <div class="std-item-title">🇹🇭 มาตรฐานไทย (กรมควบคุมมลพิษ)</div>
+        <div class="std-row">
+          <span class="std-row-label">PM2.5 (24hr) ≤ 37.5</span>
+          <span class="std-row-val" id="stdThaiPM25">—</span>
+        </div>
+        <div class="std-row-bar"><div class="std-row-fill" id="fillThaiPM25" style="width:0%"></div></div>
+        <div class="std-row" style="margin-top:8px;">
+          <span class="std-row-label">PM10 (24hr) ≤ 120</span>
+          <span class="std-row-val" id="stdThaiPM10">—</span>
+        </div>
+        <div class="std-row-bar"><div class="std-row-fill" id="fillThaiPM10" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Average Card -->
+  <div class="avg-card hidden-until-load">
+    <div class="avg-title">📊 ค่าเฉลี่ย (ข้อมูลทั้งหมด)</div>
+    <div class="avg-grid">
+      <div class="avg-item pm25">
+        <div class="avg-item-label">PM2.5</div>
+        <div class="avg-item-val" id="avgPM25">—</div>
+        <div class="avg-item-unit">μg/m³</div>
+        <div class="avg-item-sub" id="avgPM25range"></div>
+      </div>
+      <div class="avg-item pm10">
+        <div class="avg-item-label">PM10</div>
+        <div class="avg-item-val" id="avgPM10">—</div>
+        <div class="avg-item-unit">μg/m³</div>
+        <div class="avg-item-sub" id="avgPM10range"></div>
+      </div>
+      <div class="avg-item temp">
+        <div class="avg-item-label">Temperature</div>
+        <div class="avg-item-val" id="avgTemp">—</div>
+        <div class="avg-item-unit">°C</div>
+        <div class="avg-item-sub" id="avgTemprange"></div>
+      </div>
+      <div class="avg-item humi">
+        <div class="avg-item-label">Humidity</div>
+        <div class="avg-item-val" id="avgHumi">—</div>
+        <div class="avg-item-unit">%RH</div>
+        <div class="avg-item-sub" id="avgHumirange"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts-grid hidden-until-load">
+    <div class="chart-card">
+      <div class="chart-title">PM2.5</div>
+      <div class="chart-wrap"><canvas id="chartPM25"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">PM10</div>
+      <div class="chart-wrap"><canvas id="chartPM10"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Temperature</div>
+      <div class="chart-wrap"><canvas id="chartTemp"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Humidity</div>
+      <div class="chart-wrap"><canvas id="chartHumi"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Line Chart 7 days -->
+  <div class="line-chart-card hidden-until-load">
+    <div class="line-chart-header">
+      <div class="line-chart-title">📈 กราฟย้อนหลัง 7 วัน</div>
+      <div class="line-tabs">
+        <button class="line-tab active" onclick="switchLine('PM2.5')">PM2.5</button>
+        <button class="line-tab" onclick="switchLine('PM10')">PM10</button>
+        <button class="line-tab" onclick="switchLine('Temp')">Temp</button>
+        <button class="line-tab" onclick="switchLine('Humidity')">Humidity</button>
+      </div>
+    </div>
+    <div class="line-chart-wrap">
+      <canvas id="lineChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Filter & Search Bar -->
+  <div class="filter-bar hidden-until-load">
+    <span class="filter-label">📅 ช่วงวันที่:</span>
+    <input class="filter-input" type="date" id="filterFrom"/>
+    <span style="font-size:0.78rem;color:var(--muted);">ถึง</span>
+    <input class="filter-input" type="date" id="filterTo"/>
+    <button class="filter-btn" onclick="applyFilter()">กรอง</button>
+    <button class="filter-reset" onclick="resetFilter()">รีเซ็ต</button>
+    <span class="filter-label" style="margin-left:auto;">🔍</span>
+    <input class="search-input" type="text" id="searchInput" placeholder="ค้นหา Timestamp..." oninput="applyFilter()"/>
+  </div>
+
+  <div class="table-card hidden-until-load">
+    <div class="table-header">
+      <div class="table-title">📋 Data Log</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="row-count" id="rowCount">— Records</div>
+        <button class="export-btn" onclick="exportPDF()">📄 Export PDF</button>
+      </div>
+    </div>
+    <div id="tableWrap"><div class="msg">กรอก URL แล้วกดโหลดข้อมูลครับ</div></div>
+  </div>
+
+  <div class="last-update" id="lastUpdate"></div>
+
+</div>
+
+<!-- QR Modal -->
+<div class="modal-overlay" id="qrOverlay" onclick="closeQROutside(event)">
+  <div class="modal-box qr-modal-box">
+    <div class="modal-title">📸 QR Code — เปิดเว็บนี้</div>
+    <div class="modal-sub">สแกนเพื่อเปิดหน้า Dashboard บนมือถือ</div>
+    <img id="qrImg" src="" alt="QR Code" width="200" height="200"/>
+    <div class="qr-url" id="qrUrl"></div>
+    <div class="modal-btns" style="margin-top:14px;">
+      <button class="modal-btn-cancel" onclick="closeQR()">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal-box">
+    <div class="modal-title">⚙️ ตั้งค่า URL</div>
+    <div class="modal-sub">วาง Apps Script Web App URL ของคุณที่นี่</div>
+    <input class="modal-input" type="text" id="modalInput" placeholder="https://script.google.com/macros/s/..."/>
+    <div class="modal-btns">
+      <button class="modal-btn-cancel" onclick="closeModal()">ยกเลิก</button>
+      <button class="modal-btn-save" onclick="saveUrl()">บันทึกและโหลด</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+  let alertEnabled = false;
+  let audioCtx = null;
+  let lastAlertTime = 0;
+
+  function toggleAlert() {
+    alertEnabled = !alertEnabled;
+    const btn = $('alertToggle');
+    if (alertEnabled) {
+      // Request audio context on user gesture
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      btn.textContent = '🔔 เปิดอยู่';
+      btn.classList.add('on');
+    } else {
+      btn.textContent = '🔕 ปิดอยู่';
+      btn.classList.remove('on');
+      $('alertBar').classList.remove('danger', 'warn');
+      $('alertStatus').className = 'alert-status';
+      $('alertStatus').textContent = '— ปิดการแจ้งเตือน';
+    }
+  }
+
+  function playAlertSound(level) {
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    const freqs = level === 'danger' ? [880, 660, 880] : [550, 440];
+    freqs.forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.3, now + i * 0.18);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.18 + 0.15);
+      osc.start(now + i * 0.18);
+      osc.stop(now + i * 0.18 + 0.15);
+    });
+  }
+
+  // ===== AQI CALCULATOR (US EPA standard) =====
+  function calcAQI(pm25, pm10) {
+    function aqiFromPM25(c) {
+      if (c < 0)   return 0;
+      if (c <= 12)   return linear(50,  0,  12,   0,   c);
+      if (c <= 35.4) return linear(100, 51, 35.4, 12.1, c);
+      if (c <= 55.4) return linear(150, 101, 55.4, 35.5, c);
+      if (c <= 150.4)return linear(200, 151, 150.4, 55.5, c);
+      if (c <= 250.4)return linear(300, 201, 250.4, 150.5, c);
+      return linear(500, 301, 500.4, 250.5, c);
+    }
+    function aqiFromPM10(c) {
+      if (c < 0)   return 0;
+      if (c <= 54)  return linear(50,  0,  54,  0,  c);
+      if (c <= 154) return linear(100, 51, 154, 55, c);
+      if (c <= 254) return linear(150, 101, 254, 155, c);
+      if (c <= 354) return linear(200, 151, 354, 255, c);
+      if (c <= 424) return linear(300, 201, 424, 355, c);
+      return linear(500, 301, 604, 425, c);
+    }
+    function linear(hi, lo, cHi, cLo, c) {
+      return Math.round((hi - lo) / (cHi - cLo) * (c - cLo) + lo);
+    }
+    function level(aqi) {
+      if (aqi <= 50)  return { desc: '😊 ดีมาก',        cls: 'aqi-good',      sub: 'คุณภาพอากาศดีเยี่ยม' };
+      if (aqi <= 100) return { desc: '🙂 ปานกลาง',      cls: 'aqi-moderate',  sub: 'ผู้ที่ไวต่อฝุ่นควรระวัง' };
+      if (aqi <= 150) return { desc: '😷 ไม่ดีสำหรับกลุ่มเสี่ยง', cls: 'aqi-sensitive', sub: 'เด็ก ผู้สูงอายุ ควรระวัง' };
+      if (aqi <= 200) return { desc: '🤢 ไม่ดีต่อสุขภาพ', cls: 'aqi-unhealthy', sub: 'ทุกคนอาจได้รับผลกระทบ' };
+      if (aqi <= 300) return { desc: '🚨 อันตรายมาก',   cls: 'aqi-very',      sub: 'หลีกเลี่ยงกิจกรรมกลางแจ้ง' };
+      return           { desc: '☠️ อันตรายร้ายแรง',    cls: 'aqi-hazardous', sub: 'ห้ามออกนอกบ้านโดยเด็ดขาด' };
+    }
+
+    const a25 = aqiFromPM25(pm25);
+    const a10 = aqiFromPM10(pm10);
+    const l25 = level(a25);
+    const l10 = level(a10);
+
+    document.getElementById('aqiPM25val').textContent  = a25;
+    document.getElementById('aqiPM25desc').textContent = l25.desc;
+    document.getElementById('aqiPM25sub').textContent  = l25.sub;
+    document.getElementById('aqiPM25box').className    = 'aqi-item ' + l25.cls;
+
+    document.getElementById('aqiPM10val').textContent  = a10;
+    document.getElementById('aqiPM10desc').textContent = l10.desc;
+    document.getElementById('aqiPM10sub').textContent  = l10.sub;
+    document.getElementById('aqiPM10box').className    = 'aqi-item ' + l10.cls;
+  }
+
+  // ===== FILTER & SEARCH =====
+  function applyFilter() {
+    if (!allData || allData.length === 0) return;
+
+    const from   = $('filterFrom').value;
+    const to     = $('filterTo').value;
+    const search = $('searchInput').value.toLowerCase();
+
+    let filtered = allData.filter(r => {
+      const ts  = new Date(r['Timestamp'] || r['timestamp'] || '');
+      const tsStr = (r['Timestamp'] || r['timestamp'] || '').toString().toLowerCase();
+
+      if (from && !isNaN(ts) && ts < new Date(from)) return false;
+      if (to   && !isNaN(ts) && ts > new Date(to + 'T23:59:59')) return false;
+      if (search && !tsStr.includes(search)) return false;
+      return true;
+    });
+
+    renderTable(filtered);
+    $('rowCount').textContent = filtered.length + ' / ' + allData.length + ' Records';
+  }
+
+  function resetFilter() {
+    $('filterFrom').value  = '';
+    $('filterTo').value    = '';
+    $('searchInput').value = '';
+    renderTable(allData);
+    $('rowCount').textContent = allData.length + ' Records';
+  }
+
+  function renderTable(data) {
+    if (!data || data.length === 0) {
+      $('tableWrap').innerHTML = '<div class="msg">ไม่พบข้อมูลที่ตรงกันครับ</div>';
+      return;
+    }
+    const rows = [...data].reverse().slice(0, 100);
+    $('tableWrap').innerHTML = `
+      <table>
+        <thead><tr><th>Timestamp</th><th>PM2.5</th><th>PM10</th><th>Temp</th><th>Humidity</th><th>Status</th></tr></thead>
+        <tbody>
+          ${rows.map(r => {
+            const p25 = parseFloat(r['PM2.5'] || r['pm25'] || 0);
+            const p10 = parseFloat(r['PM10']  || r['pm10'] || 0);
+            const t   = parseFloat(r['Temp']  || r['temp'] || 0);
+            const h   = parseFloat(r['Humidity'] || r['humidity'] || 0);
+            return `<tr>
+              <td>${formatTs(r['Timestamp'] || r['timestamp'] || '')}</td>
+              <td class="val-pm25">${p25.toFixed(1)}</td>
+              <td class="val-pm10">${p10.toFixed(1)}</td>
+              <td class="val-temp">${t.toFixed(1)}°</td>
+              <td class="val-humi">${h.toFixed(1)}%</td>
+              <td>${getRowBadge(p25, 'pm25')}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function updateAverage(data) {
+    if (!data || data.length === 0) return;
+
+    const fields = [
+      { key: 'PM2.5',    id: 'avgPM25', range: 'avgPM25range' },
+      { key: 'PM10',     id: 'avgPM10', range: 'avgPM10range' },
+      { key: 'Temp',     id: 'avgTemp', range: 'avgTemprange' },
+      { key: 'Humidity', id: 'avgHumi', range: 'avgHumirange' }
+    ];
+
+    fields.forEach(f => {
+      const vals = data.map(r => parseFloat(r[f.key] || r[f.key.toLowerCase()] || 0)).filter(v => !isNaN(v) && v > 0);
+      if (vals.length === 0) return;
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const min = Math.min(...vals);
+      const max = Math.max(...vals);
+      animateNumber(f.id, parseFloat(avg));
+      document.getElementById(f.range).textContent = 'Min ' + min.toFixed(1) + ' / Max ' + max.toFixed(1);
+    });
+  }
+
+  function checkAlert(pm25) {
+    const threshold = parseFloat($('alertThreshold').value) || 37;
+    const bar = $('alertBar');
+    const status = $('alertStatus');
+    const now = Date.now();
+
+    if (!alertEnabled) return;
+
+    if (pm25 > threshold) {
+      const level = pm25 > threshold * 1.5 ? 'danger' : 'warn';
+      bar.className = 'alert-bar ' + level;
+      status.className = 'alert-status firing';
+      status.textContent = '🚨 ค่า PM2.5 = ' + pm25.toFixed(1) + ' μg/m³ เกินเกณฑ์!';
+
+      // Play sound max every 30 sec
+      if (now - lastAlertTime > 30000) {
+        playAlertSound(level);
+        lastAlertTime = now;
+      }
+    } else {
+      bar.className = 'alert-bar';
+      status.className = 'alert-status';
+      status.textContent = '✅ ค่าปกติ — PM2.5 = ' + pm25.toFixed(1) + ' μg/m³';
+    }
+  }
+
+  function exportPDF() {
+    if (!allData || allData.length === 0) {
+      alert('ยังไม่มีข้อมูลครับ กรุณาโหลดข้อมูลก่อน');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+    // Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(33, 150, 243);
+    doc.text('Air Quality Report', 14, 18);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Generated: ' + new Date().toLocaleString('th-TH'), 14, 25);
+    doc.text('Total records: ' + allData.length, 14, 30);
+
+    // Latest values summary
+    const latest = allData[allData.length - 1];
+    const pm25 = parseFloat(latest['PM2.5'] || 0).toFixed(1);
+    const pm10 = parseFloat(latest['PM10']  || 0).toFixed(1);
+    const temp = parseFloat(latest['Temp']  || 0).toFixed(1);
+    const humi = parseFloat(latest['Humidity'] || 0).toFixed(1);
+
+    doc.setFontSize(10);
+    doc.setTextColor(33, 33, 33);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Latest Values:', 14, 38);
+    doc.setFont('helvetica', 'normal');
+    doc.text('PM2.5: ' + pm25 + ' μg/m3   PM10: ' + pm10 + ' μg/m3   Temp: ' + temp + ' C   Humidity: ' + humi + ' %', 14, 44);
+
+    // Average Summary
+    const fields = [
+      { key: 'PM2.5', unit: 'μg/m3' },
+      { key: 'PM10',  unit: 'μg/m3' },
+      { key: 'Temp',  unit: 'C' },
+      { key: 'Humidity', unit: '%' }
+    ];
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(33, 33, 33);
+    doc.text('Average Summary:', 14, 52);
+
+    const avgRows = fields.map(f => {
+      const vals = allData.map(r => parseFloat(r[f.key] || 0)).filter(v => !isNaN(v) && v > 0);
+      const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '-';
+      const min = vals.length ? Math.min(...vals).toFixed(1) : '-';
+      const max = vals.length ? Math.max(...vals).toFixed(1) : '-';
+      return [f.key, avg + ' ' + f.unit, min + ' ' + f.unit, max + ' ' + f.unit];
+    });
+
+    doc.autoTable({
+      head: [['Field', 'Average', 'Min', 'Max']],
+      body: avgRows,
+      startY: 56,
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [0, 188, 212], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [240, 247, 255] },
+      margin: { left: 14 },
+      tableWidth: 120
+    });
+
+    // Table
+    const headers = [['#', 'Timestamp', 'PM2.5 (μg/m3)', 'PM10 (μg/m3)', 'Temp (C)', 'Humidity (%)', 'Status']];
+    const rows = allData.map((r, i) => {
+      const p25 = parseFloat(r['PM2.5'] || 0);
+      const status = p25 <= 25 ? 'Good' : p25 <= 37 ? 'Moderate' : 'Unhealthy';
+      return [
+        i + 1,
+        formatTs(r['Timestamp'] || r['timestamp'] || ''),
+        parseFloat(r['PM2.5']    || 0).toFixed(1),
+        parseFloat(r['PM10']     || 0).toFixed(1),
+        parseFloat(r['Temp']     || 0).toFixed(1),
+        parseFloat(r['Humidity'] || 0).toFixed(1),
+        status
+      ];
+    });
+
+    doc.autoTable({
+      head: headers,
+      body: rows,
+      startY: doc.lastAutoTable.finalY + 8,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [33, 150, 243], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [240, 247, 255] },
+      columnStyles: {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 55 },
+        6: { cellWidth: 22 }
+      },
+      didDrawCell: (data) => {
+        if (data.section === 'body' && data.column.index === 6) {
+          const val = data.cell.raw;
+          if (val === 'Good')      doc.setTextColor(46, 125, 50);
+          else if (val === 'Moderate') doc.setTextColor(230, 81, 0);
+          else                    doc.setTextColor(183, 28, 28);
+        }
+      }
+    });
+
+    doc.save('air-quality-report-' + new Date().toISOString().slice(0,10) + '.pdf');
+  }
+
+  let lineChartInstance = null;
+  let allData = [];
+  let currentLine = 'PM2.5';
+
+  const lineColors = {
+    'PM2.5':    '#2196f3',
+    'PM10':     '#00bcd4',
+    'Temp':     '#ff6f00',
+    'Humidity': '#1565c0'
+  };
+
+  function switchLine(field) {
+    currentLine = field;
+    document.querySelectorAll('.line-tab').forEach(t => {
+      t.classList.toggle('active', t.textContent === field);
+    });
+    drawLineChart(allData, field);
+  }
+
+  function drawLineChart(data, field) {
+    if (!data || data.length === 0) return;
+
+    // Filter last 7 days
+    const now = new Date();
+    const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    const filtered = data.filter(r => {
+      const ts = new Date(r['Timestamp'] || r['timestamp'] || '');
+      return !isNaN(ts) && ts >= sevenDaysAgo;
+    });
+
+    const src = filtered.length > 0 ? filtered : data.slice(-100);
+    const labels = src.map(r => {
+      try {
+        const d = new Date(r['Timestamp'] || r['timestamp'] || '');
+        return isNaN(d) ? '' : d.toLocaleString('th-TH', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+      } catch { return ''; }
+    });
+
+    const values = src.map(r => parseFloat(r[field] || 0));
+    const color = lineColors[field] || '#2196f3';
+
+    const ctx = $('lineChart').getContext('2d');
+    if (lineChartInstance) lineChartInstance.destroy();
+
+    lineChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: field,
+          data: values,
+          borderColor: color,
+          backgroundColor: color + '18',
+          borderWidth: 2,
+          pointRadius: 2,
+          pointBackgroundColor: color,
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.parsed.y.toFixed(1) + (field === 'Temp' ? ' °C' : field === 'Humidity' ? ' %' : ' μg/m³')
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#90a4ae', font: { size: 10 }, maxTicksLimit: 8, maxRotation: 30 },
+            grid: { color: 'rgba(144,164,174,0.15)' }
+          },
+          y: {
+            ticks: { color: '#90a4ae', font: { size: 10 } },
+            grid: { color: 'rgba(144,164,174,0.15)' }
+          }
+        }
+      }
+    });
+  }
+
+  let charts = {};
+
+  // DOM cache for performance
+  const $ = id => document.getElementById(id);
+
+  function getAQIBadge(val, type) {
+    if (type === 'pm25') {
+      if (val <= 25) return '<div class="stat-badge badge-good">✅ ดี</div>';
+      if (val <= 37) return '<div class="stat-badge badge-warn">⚠️ ปานกลาง</div>';
+      return '<div class="stat-badge badge-danger">🚨 อันตราย</div>';
+    }
+    if (type === 'pm10') {
+      if (val <= 50) return '<div class="stat-badge badge-good">✅ ดี</div>';
+      if (val <= 80) return '<div class="stat-badge badge-warn">⚠️ ปานกลาง</div>';
+      return '<div class="stat-badge badge-danger">🚨 อันตราย</div>';
+    }
+    return '';
+  }
+
+  function getRowBadge(val, type) {
+    if (type === 'pm25') {
+      if (val <= 25) return '<span class="pill badge-good">ดี</span>';
+      if (val <= 37) return '<span class="pill badge-warn">ปานกลาง</span>';
+      return '<span class="pill badge-danger">อันตราย</span>';
+    }
+    return '';
+  }
+
+  function makeChart(id, labels, data, color) {
+    const ctx = document.getElementById(id).getContext('2d');
+    if (charts[id]) charts[id].destroy();
+
+    const configs = {
+      chartPM25: { max: 100, unit: 'μg/m³' },
+      chartPM10: { max: 150, unit: 'μg/m³' },
+      chartTemp: { max: 50,  unit: '°C' },
+      chartHumi: { max: 100, unit: '%RH' }
+    };
+
+    const cfg = configs[id] || { max: 100, unit: '' };
+    const latest = data[data.length - 1] || 0;
+    const pct = Math.min(latest / cfg.max, 1);
+
+    charts[id] = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        datasets: [{
+          data: [pct, 1 - pct],
+          backgroundColor: [color, getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim() || '#e3f2fd'],
+          borderWidth: 0,
+          circumference: 270,
+          rotation: 225
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        cutout: '72%',
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        animation: { animateRotate: true, duration: 800 }
+      },
+      plugins: [{
+        id: 'centerText',
+        beforeDraw(chart) {
+          const { ctx, chartArea: { top, bottom, left, right } } = chart;
+          const cx = (left + right) / 2;
+          const cy = (top + bottom) / 2 + 10;
+          ctx.save();
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = color;
+          ctx.font = `700 1.5rem "Kanit", sans-serif`;
+          ctx.fillText(latest.toFixed(1), cx, cy - 8);
+          ctx.fillStyle = '#90a4ae';
+          ctx.font = `0.6rem "Prompt", sans-serif`;
+          ctx.fillText(cfg.unit, cx, cy + 12);
+          ctx.restore();
+        }
+      }]
+    });
+  }
+
+  // ===== STANDARDS COMPARISON =====
+  function updateStandards(pm25, pm10) {
+    // WHO 2021: PM2.5=15, PM10=45
+    const whoPM25 = 15, whoPM10 = 45;
+    // Thai: PM2.5=37.5, PM10=120
+    const thaiPM25 = 37.5, thaiPM10 = 120;
+
+    function setBar(valId, fillId, val, limit) {
+      const pct = Math.min((val / limit) * 100, 100);
+      const cls = pct <= 70 ? 'fill-good' : pct <= 100 ? 'fill-warn' : 'fill-danger';
+      const label = val.toFixed(1) + ' / ' + limit + ' μg/m³ (' + pct.toFixed(0) + '%)';
+      document.getElementById(valId).textContent = label;
+      document.getElementById(valId).style.color = pct > 100 ? 'var(--red)' : pct > 70 ? 'var(--yellow)' : 'var(--green)';
+      setTimeout(() => {
+        const fill = document.getElementById(fillId);
+        fill.className = 'std-row-fill ' + cls;
+        fill.style.width = pct + '%';
+      }, 200);
+    }
+
+    setBar('stdWhoPM25',  'fillWhoPM25',  pm25, whoPM25);
+    setBar('stdWhoPM10',  'fillWhoPM10',  pm10, whoPM10);
+    setBar('stdThaiPM25', 'fillThaiPM25', pm25, thaiPM25);
+    setBar('stdThaiPM10', 'fillThaiPM10', pm10, thaiPM10);
+  }
+
+  // ===== QR CODE =====
+  function showQR() {
+    const url = window.location.href;
+    const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(url);
+    $('qrImg').src = qrUrl;
+    $('qrUrl').textContent = url;
+    $('qrOverlay').classList.add('open');
+  }
+
+  function closeQR() { $('qrOverlay').classList.remove('open'); }
+  function closeQROutside(e) { if (e.target === $('qrOverlay')) closeQR(); }
+
+  function animateNumber(elementId, targetVal, duration=800, decimals=1) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const start = parseFloat(el.textContent) || 0;
+    const startTime = performance.now();
+
+    function update(currentTime) {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const ease = 1 - Math.pow(1 - progress, 3);
+      const current = start + (targetVal - start) * ease;
+      el.textContent = current.toFixed(decimals);
+      if (progress < 1) requestAnimationFrame(update);
+      else el.textContent = targetVal.toFixed(decimals);
+    }
+    requestAnimationFrame(update);
+  }
+
+  function formatTs(ts) {
+    if (!ts) return '-';
+    try {
+      const d = new Date(ts);
+      if (isNaN(d)) return ts;
+      return d.toLocaleString('th-TH', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+    } catch { return ts; }
+  }
+
+  function loadData() {
+    const url = $('sheetUrl').value.trim();
+    if (!url) { alert('กรุณากรอก URL ก่อนครับ'); return; }
+
+    $('statusText').textContent = 'กำลังโหลด...';
+    $('tableWrap').innerHTML = '<div class="msg">⏳ กำลังโหลดข้อมูล...</div>';
+
+    const old = document.getElementById('jsonp-script');
+    if (old) old.remove();
+
+    window._jsonpCallback = function(data) { renderData(data); };
+
+    const script = document.createElement('script');
+    script.id = 'jsonp-script';
+    script.src = url + '?callback=_jsonpCallback';
+    script.onerror = () => {
+      $('statusText').textContent = 'ERROR';
+      $('tableWrap').innerHTML = '<div class="msg error">❌ โหลดข้อมูลไม่ได้ครับ</div>';
+    };
+    document.body.appendChild(script);
+  }
+
+  function renderData(data) {
+    try {
+      if (!data || data.length === 0) {
+        $('tableWrap').innerHTML = '<div class="msg error">ไม่พบข้อมูลครับ</div>';
+        return;
+      }
+
+      const latest = data[data.length - 1];
+      const pm25 = parseFloat(latest['PM2.5'] || latest['pm25'] || 0);
+      const pm10 = parseFloat(latest['PM10'] || latest['pm10'] || 0);
+      const temp = parseFloat(latest['Temp'] || latest['temp'] || 0);
+      const humi = parseFloat(latest['Humidity'] || latest['humidity'] || 0);
+
+      $('valPM25').textContent = pm25.toFixed(1);
+      checkAlert(pm25);
+      calcAQI(pm25, pm10);
+      updateStandards(pm25, pm10);
+      $('valPM10').textContent = pm10.toFixed(1);
+      $('valTemp').textContent = temp.toFixed(1);
+      $('valHumi').textContent = humi.toFixed(1);
+      $('badgePM25').innerHTML = getAQIBadge(pm25, 'pm25');
+      $('badgePM10').innerHTML = getAQIBadge(pm10, 'pm10');
+
+      const slice = data.slice(-50);
+      const labels = slice.map(r => (r['Timestamp'] || r['timestamp'] || '').toString().slice(5, 16));
+
+      makeChart('chartPM25', labels, slice.map(r => parseFloat(r['PM2.5']  || r['pm25']     || 0)), '#2196f3');
+      makeChart('chartPM10', labels, slice.map(r => parseFloat(r['PM10']   || r['pm10']     || 0)), '#00bcd4');
+      makeChart('chartTemp',  labels, slice.map(r => parseFloat(r['Temp']   || r['temp']     || 0)), '#ff6f00');
+      makeChart('chartHumi',  labels, slice.map(r => parseFloat(r['Humidity'] || r['humidity'] || 0)), '#1565c0');
+
+      const rows = [...data].reverse().slice(0, 20);
+      $('rowCount').textContent = data.length + ' Records';
+      $('tableWrap').innerHTML = `
+        <table>
+          <thead><tr><th>Timestamp</th><th>PM2.5</th><th>PM10</th><th>Temp</th><th>Humidity</th><th>Status</th></tr></thead>
+          <tbody>
+            ${rows.map(r => {
+              const p25 = parseFloat(r['PM2.5'] || r['pm25'] || 0);
+              const p10 = parseFloat(r['PM10']  || r['pm10'] || 0);
+              const t   = parseFloat(r['Temp']  || r['temp'] || 0);
+              const h   = parseFloat(r['Humidity'] || r['humidity'] || 0);
+              return `<tr>
+                <td>${formatTs(r['Timestamp'] || r['timestamp'] || '')}</td>
+                <td class="val-pm25">${p25.toFixed(1)}</td>
+                <td class="val-pm10">${p10.toFixed(1)}</td>
+                <td class="val-temp">${t.toFixed(1)}°</td>
+                <td class="val-humi">${h.toFixed(1)}%</td>
+                <td>${getRowBadge(p25, 'pm25')}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+
+      allData = data;
+      drawLineChart(data, currentLine);
+      updateAverage(data);
+      document.getElementById("rowCount").textContent = data.length + " Records";
+      document.querySelectorAll('.hidden-until-load').forEach(el => el.classList.add('revealed'));
+      renderTable(data);
+      $('statusText').textContent = 'LIVE';
+      $('lastUpdate').textContent = 'อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH');
+    } catch(e) {
+      $('statusText').textContent = 'ERROR';
+      $('tableWrap').innerHTML = '<div class="msg error">❌ เกิดข้อผิดพลาดครับ</div>';
+    }
+  }
+
+  let lastTimestamp = null;
+
+
+  // ===== COUNTDOWN TIMER =====
+  let countdownVal = 3600;
+  let countdownInterval = null;
+
+  function startCountdown() {
+    countdownVal = 5;
+    if (countdownInterval) clearInterval(countdownInterval);
+    countdownInterval = setInterval(() => {
+      countdownVal--;
+      const el = $('countdownText');
+      if (el) {
+        if (countdownVal > 0) {
+          const m = Math.floor(countdownVal / 60).toString().padStart(2,'0');
+          const s = (countdownVal % 60).toString().padStart(2,'0');
+          el.textContent = '— ' + m + ':' + s;
+        } else {
+          el.textContent = '— กำลังเช็ค...';
+          countdownVal = 3600;
+        }
+      }
+    }, 1000);
+  }
+
+
+
+  function smartRefresh() {
+    const url = 'https://script.google.com/macros/s/AKfycbzQVa8DL21CDDQTb4ffwNd8UQSwQXItb23IMkQjTQRzaFr73s_Vd2z28IJrZ5tJeRttCg/exec';
+    const old = document.getElementById('jsonp-check');
+    if (old) old.remove();
+
+    window._checkCallback = function(data) {
+      if (!data || data.length === 0) return;
+      const latest = data[data.length - 1];
+      const ts = latest['Timestamp'] || latest['timestamp'] || '';
+      if (ts !== lastTimestamp) {
+        lastTimestamp = ts;
+        renderData(data);
+        $('lastUpdate').textContent =
+          'อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH') + ' ✅ ข้อมูลใหม่';
+      }
+    };
+
+    const script = document.createElement('script');
+    script.id = 'jsonp-check';
+    script.src = url + '?callback=_checkCallback&t=' + Date.now();
+    document.body.appendChild(script);
+  }
+
+
+
+  function toggleDropdown() {
+    document.getElementById('dropdownMenu').classList.toggle('open');
+  }
+
+  function closeDropdown() {
+    document.getElementById('dropdownMenu').classList.remove('open');
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+    const wrap = document.querySelector('.dropdown-wrap');
+    if (wrap && !wrap.contains(e.target)) closeDropdown();
+  });
+
+  function refreshClick() {
+    const btn = $('refreshBtn');
+    btn.innerHTML = '<span class="spin">⟳</span> Refresh';
+    btn.disabled = true;
+    loadData();
+    setTimeout(() => {
+      btn.innerHTML = '⟳ Refresh';
+      btn.disabled = false;
+    }, 2000);
+  }
+
+  function openModal() {
+    $('modalInput').value = $('sheetUrl').value;
+    $('modalOverlay').classList.add('open');
+    $('modalInput').focus();
+  }
+
+  function closeModal() {
+    $('modalOverlay').classList.remove('open');
+  }
+
+  function closeModalOutside(e) {
+    if (e.target === $('modalOverlay')) closeModal();
+  }
+
+  function saveUrl() {
+    const url = $('modalInput').value.trim();
+    if (!url) { alert('กรุณากรอก URL ก่อนครับ'); return; }
+    $('sheetUrl').value = url;
+    localStorage.setItem('sheetUrl', url);
+    closeModal();
+    loadData();
+  }
+
+  function toggleTheme() {
+    const html = document.documentElement;
+    const btn = $('themeBtn');
+    if (html.getAttribute('data-theme') === 'dark') {
+      html.removeAttribute('data-theme');
+      if (btn) btn.innerHTML = '🌙 โหมดมืด';
+      localStorage.setItem('theme', 'light');
+    } else {
+      html.setAttribute('data-theme', 'dark');
+      if (btn) btn.innerHTML = '☀️ โหมดสว่าง';
+      localStorage.setItem('theme', 'dark');
+    }
+  }
+
+  window.onload = function() {
+    $('sheetUrl').value = 'https://script.google.com/macros/s/AKfycbzQVa8DL21CDDQTb4ffwNd8UQSwQXItb23IMkQjTQRzaFr73s_Vd2z28IJrZ5tJeRttCg/exec';
+    const savedUrl = localStorage.getItem('sheetUrl');
+    if (savedUrl) $('sheetUrl').value = savedUrl;
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      $('themeBtn').textContent = '☀️ โหมดสว่าง';
+    }
+    loadData();
+
+  };
+</script>
+</body>
+</html>
