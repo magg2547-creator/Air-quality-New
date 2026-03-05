@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Air Quality Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=Prompt:wght@300;400;600&display=swap');
+
+  :root {
+    --bg: #f0f7ff;
+    --bg2: #e8f4ff;
+    --white: #ffffff;
+    --blue: #2196f3;
+    --blue-light: #e3f2fd;
+    --teal: #00bcd4;
+    --teal-light: #e0f7fa;
+    --orange: #ff6f00;
+    --orange-light: #fff3e0;
+    --green: #00c853;
+    --green-light: #e8f5e9;
+    --yellow: #ffc107;
+    --yellow-light: #fffde7;
+    --red: #f44336;
+    --red-light: #ffebee;
+    --text: #1a237e;
+    --text2: #455a64;
+    --muted: #90a4ae;
+    --shadow: 0 4px 20px rgba(33,150,243,0.10);
+    --shadow-hover: 0 8px 30px rgba(33,150,243,0.18);
+    --radius: 16px;
+  }
+
+  [data-theme="dark"] {
+    --bg: #0a0e1a;
+    --bg2: #0d1525;
+    --white: #111827;
+    --blue: #42a5f5;
+    --blue-light: #0d2035;
+    --teal: #26c6da;
+    --teal-light: #0d2530;
+    --orange: #ffa726;
+    --orange-light: #1a1200;
+    --green: #00e676;
+    --green-light: #0d1f10;
+    --yellow: #ffca28;
+    --yellow-light: #1a1500;
+    --red: #ef5350;
+    --red-light: #1a0d0d;
+    --text: #e3f2fd;
+    --text2: #90a4ae;
+    --muted: #4a6080;
+    --shadow: 0 4px 20px rgba(0,0,0,0.4);
+    --shadow-hover: 0 8px 30px rgba(0,0,0,0.5);
+  }
+
+  .theme-toggle {
+    background: var(--bg2);
+    border: 1.5px solid var(--blue-light);
+    border-radius: 20px;
+    padding: 7px 14px;
+    cursor: pointer;
+    font-family: 'Prompt', sans-serif;
+    font-size: 0.8rem;
+    color: var(--text2);
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.2s;
+  }
+
+  .theme-toggle:hover { background: var(--blue-light); }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body, .stat-card, .chart-card, .table-card, .url-bar, header { transition: background 0.3s, color 0.3s, box-shadow 0.3s; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Prompt', sans-serif;
+    min-height: 100vh;
+    padding: 24px;
+    background-image:
+      radial-gradient(circle at 10% 10%, rgba(33,150,243,0.06) 0%, transparent 50%),
+      radial-gradient(circle at 90% 90%, rgba(0,188,212,0.06) 0%, transparent 50%);
+  }
+
+  .wrapper { max-width: 1100px; margin: 0 auto; }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 18px 24px;
+    box-shadow: var(--shadow);
+  }
+
+  .logo-area { display: flex; align-items: center; gap: 14px; }
+
+  .logo-icon {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--blue), var(--teal));
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    box-shadow: 0 4px 12px rgba(33,150,243,0.3);
+  }
+
+  .logo-area h1 { font-family: 'Kanit', sans-serif; font-size: 1.2rem; font-weight: 700; color: var(--text); }
+  .logo-area p  { font-size: 0.75rem; color: var(--muted); margin-top: 1px; }
+
+  .status-pill {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--green-light); border: 1.5px solid #a5d6a7;
+    border-radius: 20px; padding: 7px 16px;
+    font-size: 0.75rem; font-weight: 600; color: #2e7d32;
+  }
+
+  .status-pill .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+
+  .url-bar { display: none; }
+
+  .url-bar input {
+    flex: 1; background: var(--bg); border: 1.5px solid #bbdefb;
+    border-radius: 10px; padding: 9px 14px; color: var(--text2);
+    font-family: 'Prompt', sans-serif; font-size: 0.78rem; outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .url-bar input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(33,150,243,0.12); }
+  .url-bar input::placeholder { color: var(--muted); }
+
+  .url-bar button {
+    background: linear-gradient(135deg, var(--blue), var(--teal));
+    color: #fff; border: none; border-radius: 10px; padding: 9px 22px;
+    font-family: 'Kanit', sans-serif; font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; letter-spacing: 0.5px;
+    transition: opacity 0.2s, transform 0.1s;
+    box-shadow: 0 4px 12px rgba(33,150,243,0.3); white-space: nowrap;
+  }
+
+  .url-bar button:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px; margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--white); border-radius: var(--radius);
+    padding: 20px; box-shadow: var(--shadow);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative; overflow: hidden;
+    animation: slideUp 0.4s ease both;
+  }
+
+  .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+
+  .stat-card::after {
+    content: ''; position: absolute; top: -20px; right: -20px;
+    width: 80px; height: 80px; border-radius: 50%; opacity: 0.08;
+  }
+
+  .stat-card.pm25::after { background: var(--blue); }
+  .stat-card.pm10::after { background: var(--teal); }
+  .stat-card.temp::after { background: var(--orange); }
+  .stat-card.humi::after { background: #1565c0; }
+
+  .stat-icon { font-size: 1.6rem; margin-bottom: 8px; }
+
+  .stat-label {
+    font-size: 0.7rem; font-weight: 600; letter-spacing: 1.5px;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+
+  .stat-card.pm25 .stat-label { color: var(--blue); }
+  .stat-card.pm10 .stat-label { color: var(--teal); }
+  .stat-card.temp .stat-label { color: var(--orange); }
+  .stat-card.humi .stat-label { color: #1565c0; }
+
+  .stat-val {
+    font-family: 'Kanit', sans-serif; font-size: 2.4rem;
+    font-weight: 700; line-height: 1; margin-bottom: 2px;
+  }
+
+  .stat-card.pm25 .stat-val { color: var(--blue); }
+  .stat-card.pm10 .stat-val { color: var(--teal); }
+  .stat-card.temp .stat-val { color: var(--orange); }
+  .stat-card.humi .stat-val { color: #1565c0; }
+
+  .stat-unit { font-size: 0.7rem; color: var(--muted); margin-bottom: 10px; }
+
+  .stat-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 0.65rem; font-weight: 600;
+  }
+
+  .badge-good   { background: var(--green-light);  color: #2e7d32; }
+  .badge-warn   { background: var(--yellow-light); color: #e65100; }
+  .badge-danger { background: var(--red-light);    color: #b71c1c; }
+
+  .charts-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px; margin-bottom: 20px;
+  }
+
+  .chart-card {
+    background: var(--white); border-radius: var(--radius);
+    padding: 20px; box-shadow: var(--shadow); text-align: center;
+    animation: slideUp 0.5s ease both;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .chart-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+
+  .chart-title {
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; margin-bottom: 10px; color: var(--text2);
+  }
+
+  .chart-wrap {
+    position: relative; height: 180px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .chart-wrap canvas { max-width: 180px !important; }
+
+  .table-card {
+    background: var(--white); border-radius: var(--radius);
+    padding: 20px; box-shadow: var(--shadow); overflow-x: auto;
+    animation: slideUp 0.6s ease both;
+  }
+
+  .table-header {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 14px;
+  }
+
+  .table-title { font-family: 'Kanit', sans-serif; font-size: 1rem; font-weight: 600; color: var(--text); }
+
+  .row-count {
+    background: var(--blue-light); color: var(--blue);
+    border-radius: 20px; padding: 3px 12px;
+    font-size: 0.7rem; font-weight: 600;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+
+  thead th {
+    font-size: 0.68rem; font-weight: 600; color: var(--muted);
+    letter-spacing: 1px; text-transform: uppercase;
+    text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--bg);
+  }
+
+  tbody tr { border-bottom: 1px solid var(--bg); transition: background 0.15s; }
+  tbody tr:hover { background: var(--bg2); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody td { padding: 10px 12px; }
+  tbody td:first-child { color: var(--muted); font-size: 0.75rem; }
+
+  .val-pm25 { color: var(--blue);   font-weight: 600; }
+  .val-pm10 { color: var(--teal);   font-weight: 600; }
+  .val-temp { color: var(--orange); font-weight: 600; }
+  .val-humi { color: #1565c0;       font-weight: 600; }
+
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.65rem; font-weight: 600; }
+
+  .msg { text-align: center; padding: 40px; font-size: 0.85rem; color: var(--muted); }
+  .msg.error { color: var(--red); }
+
+  .last-update { font-size: 0.7rem; color: var(--muted); text-align: right; margin-top: 12px; }
+
+
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 1000;
+    align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--white); border-radius: var(--radius);
+    padding: 28px; width: 90%; max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: slideUp 0.2s ease;
+  }
+  .modal-title {
+    font-family: "Kanit", sans-serif; font-size: 1.1rem;
+    font-weight: 700; color: var(--text); margin-bottom: 6px;
+  }
+  .modal-sub { font-size: 0.78rem; color: var(--muted); margin-bottom: 16px; }
+  .modal-input {
+    width: 100%; background: var(--bg); border: 1.5px solid var(--blue-light);
+    border-radius: 10px; padding: 10px 14px; color: var(--text2);
+    font-family: "Prompt", sans-serif; font-size: 0.78rem; outline: none;
+    margin-bottom: 14px; transition: border-color 0.2s;
+  }
+  .modal-input:focus { border-color: var(--blue); }
+  .modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+  .modal-btn-cancel {
+    background: var(--bg2); color: var(--text2); border: none;
+    border-radius: 10px; padding: 9px 18px; cursor: pointer;
+    font-family: "Prompt", sans-serif; font-size: 0.8rem;
+  }
+  .modal-btn-save {
+    background: linear-gradient(135deg, var(--blue), var(--teal));
+    color: #fff; border: none; border-radius: 10px; padding: 9px 20px;
+    cursor: pointer; font-family: "Kanit", sans-serif;
+    font-size: 0.8rem; font-weight: 600;
+    box-shadow: 0 4px 12px rgba(33,150,243,0.3);
+  }
+  .settings-btn {
+    background: var(--bg2); border: 1.5px solid var(--blue-light);
+    border-radius: 20px; padding: 7px 14px; cursor: pointer;
+    font-family: "Prompt", sans-serif; font-size: 0.8rem;
+    color: var(--text2); display: flex; align-items: center; gap: 6px;
+    transition: all 0.2s;
+  }
+  .settings-btn:hover { background: var(--blue-light); }
+
+
+  .line-chart-card {
+    background: var(--white); border-radius: var(--radius);
+    padding: 20px; box-shadow: var(--shadow);
+    margin-top: 20px; animation: slideUp 0.7s ease both;
+  }
+
+  .line-chart-header {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+  }
+
+  .line-chart-title {
+    font-family: "Kanit", sans-serif; font-size: 1rem;
+    font-weight: 600; color: var(--text);
+  }
+
+  .line-tabs {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+
+  .line-tab {
+    padding: 5px 14px; border-radius: 20px; border: 1.5px solid var(--blue-light);
+    background: var(--bg2); color: var(--text2); cursor: pointer;
+    font-family: "Prompt", sans-serif; font-size: 0.72rem;
+    transition: all 0.2s;
+  }
+
+  .line-tab.active {
+    background: var(--blue); color: #fff;
+    border-color: var(--blue);
+    box-shadow: 0 2px 8px rgba(33,150,243,0.3);
+  }
+
+  .line-chart-wrap { position: relative; height: 250px; }
+
+  .export-btn {
+    background: linear-gradient(135deg, #e53935, #ff7043);
+    color: #fff; border: none; border-radius: 10px;
+    padding: 9px 18px; cursor: pointer;
+    font-family: "Kanit", sans-serif; font-size: 0.8rem; font-weight: 600;
+    box-shadow: 0 4px 12px rgba(229,57,53,0.3);
+    transition: opacity 0.2s, transform 0.1s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .export-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div class="logo-area">
+      <div class="logo-icon">💨</div>
+      <div>
+        <h1>Air Quality Monitor</h1>
+        <p>PM2.5 / PM10 — Realtime Dashboard</p>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div class="status-pill"><div class="dot"></div><span id="statusText">READY</span></div>
+      <button class="settings-btn" onclick="openModal()">⚙️ ตั้งค่า URL</button>
+      <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙 โหมดมืด</button>
+    </div>
+  </header>
+
+  <div class="url-bar">
+    <input type="text" id="sheetUrl" placeholder="วาง Apps Script Web App URL ที่นี่..."/>
+    <button onclick="loadData()">โหลดข้อมูล</button>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card pm25">
+      <div class="stat-icon">🌫️</div>
+      <div class="stat-label">PM2.5</div>
+      <div class="stat-val" id="valPM25">—</div>
+      <div class="stat-unit">μg/m³</div>
+      <div id="badgePM25"></div>
+    </div>
+    <div class="stat-card pm10">
+      <div class="stat-icon">💧</div>
+      <div class="stat-label">PM10</div>
+      <div class="stat-val" id="valPM10">—</div>
+      <div class="stat-unit">μg/m³</div>
+      <div id="badgePM10"></div>
+    </div>
+    <div class="stat-card temp">
+      <div class="stat-icon">🌡️</div>
+      <div class="stat-label">Temperature</div>
+      <div class="stat-val" id="valTemp">—</div>
+      <div class="stat-unit">°C</div>
+    </div>
+    <div class="stat-card humi">
+      <div class="stat-icon">💦</div>
+      <div class="stat-label">Humidity</div>
+      <div class="stat-val" id="valHumi">—</div>
+      <div class="stat-unit">%RH</div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">PM2.5</div>
+      <div class="chart-wrap"><canvas id="chartPM25"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">PM10</div>
+      <div class="chart-wrap"><canvas id="chartPM10"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Temperature</div>
+      <div class="chart-wrap"><canvas id="chartTemp"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Humidity</div>
+      <div class="chart-wrap"><canvas id="chartHumi"></canvas></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <div class="table-title">📋 Data Log</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="row-count" id="rowCount">— Records</div>
+        <button class="export-btn" onclick="exportPDF()">📄 Export PDF</button>
+      </div>
+    </div>
+    <div id="tableWrap"><div class="msg">กรอก URL แล้วกดโหลดข้อมูลครับ</div></div>
+  </div>
+
+
+  <!-- Line Chart 7 days -->
+  <div class="line-chart-card">
+    <div class="line-chart-header">
+      <div class="line-chart-title">📈 กราฟย้อนหลัง 7 วัน</div>
+      <div class="line-tabs">
+        <button class="line-tab active" onclick="switchLine('PM2.5')">PM2.5</button>
+        <button class="line-tab" onclick="switchLine('PM10')">PM10</button>
+        <button class="line-tab" onclick="switchLine('Temp')">Temp</button>
+        <button class="line-tab" onclick="switchLine('Humidity')">Humidity</button>
+      </div>
+    </div>
+    <div class="line-chart-wrap">
+      <canvas id="lineChart"></canvas>
+    </div>
+  </div>
+
+  <div class="last-update" id="lastUpdate"></div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal-box">
+    <div class="modal-title">⚙️ ตั้งค่า URL</div>
+    <div class="modal-sub">วาง Apps Script Web App URL ของคุณที่นี่</div>
+    <input class="modal-input" type="text" id="modalInput" placeholder="https://script.google.com/macros/s/..."/>
+    <div class="modal-btns">
+      <button class="modal-btn-cancel" onclick="closeModal()">ยกเลิก</button>
+      <button class="modal-btn-save" onclick="saveUrl()">บันทึกและโหลด</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+
+  function exportPDF() {
+    if (!allData || allData.length === 0) {
+      alert('ยังไม่มีข้อมูลครับ กรุณาโหลดข้อมูลก่อน');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+    // Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(33, 150, 243);
+    doc.text('Air Quality Report', 14, 18);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Generated: ' + new Date().toLocaleString('th-TH'), 14, 25);
+    doc.text('Total records: ' + allData.length, 14, 30);
+
+    // Latest values summary
+    const latest = allData[allData.length - 1];
+    const pm25 = parseFloat(latest['PM2.5'] || 0).toFixed(1);
+    const pm10 = parseFloat(latest['PM10']  || 0).toFixed(1);
+    const temp = parseFloat(latest['Temp']  || 0).toFixed(1);
+    const humi = parseFloat(latest['Humidity'] || 0).toFixed(1);
+
+    doc.setFontSize(10);
+    doc.setTextColor(33, 33, 33);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Latest Values:', 14, 38);
+    doc.setFont('helvetica', 'normal');
+    doc.text('PM2.5: ' + pm25 + ' μg/m3   PM10: ' + pm10 + ' μg/m3   Temp: ' + temp + ' C   Humidity: ' + humi + ' %', 14, 44);
+
+    // Table
+    const headers = [['#', 'Timestamp', 'PM2.5 (μg/m3)', 'PM10 (μg/m3)', 'Temp (C)', 'Humidity (%)', 'Status']];
+    const rows = allData.map((r, i) => {
+      const p25 = parseFloat(r['PM2.5'] || 0);
+      const status = p25 <= 25 ? 'Good' : p25 <= 37 ? 'Moderate' : 'Unhealthy';
+      return [
+        i + 1,
+        formatTs(r['Timestamp'] || r['timestamp'] || ''),
+        parseFloat(r['PM2.5']    || 0).toFixed(1),
+        parseFloat(r['PM10']     || 0).toFixed(1),
+        parseFloat(r['Temp']     || 0).toFixed(1),
+        parseFloat(r['Humidity'] || 0).toFixed(1),
+        status
+      ];
+    });
+
+    doc.autoTable({
+      head: headers,
+      body: rows,
+      startY: 50,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [33, 150, 243], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [240, 247, 255] },
+      columnStyles: {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 55 },
+        6: { cellWidth: 22 }
+      },
+      didDrawCell: (data) => {
+        if (data.section === 'body' && data.column.index === 6) {
+          const val = data.cell.raw;
+          if (val === 'Good')      doc.setTextColor(46, 125, 50);
+          else if (val === 'Moderate') doc.setTextColor(230, 81, 0);
+          else                    doc.setTextColor(183, 28, 28);
+        }
+      }
+    });
+
+    doc.save('air-quality-report-' + new Date().toISOString().slice(0,10) + '.pdf');
+  }
+
+
+  let lineChartInstance = null;
+  let allData = [];
+  let currentLine = 'PM2.5';
+
+  const lineColors = {
+    'PM2.5':    '#2196f3',
+    'PM10':     '#00bcd4',
+    'Temp':     '#ff6f00',
+    'Humidity': '#1565c0'
+  };
+
+  function switchLine(field) {
+    currentLine = field;
+    document.querySelectorAll('.line-tab').forEach(t => {
+      t.classList.toggle('active', t.textContent === field);
+    });
+    drawLineChart(allData, field);
+  }
+
+  function drawLineChart(data, field) {
+    if (!data || data.length === 0) return;
+
+    // Filter last 7 days
+    const now = new Date();
+    const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    const filtered = data.filter(r => {
+      const ts = new Date(r['Timestamp'] || r['timestamp'] || '');
+      return !isNaN(ts) && ts >= sevenDaysAgo;
+    });
+
+    const src = filtered.length > 0 ? filtered : data.slice(-100);
+    const labels = src.map(r => {
+      try {
+        const d = new Date(r['Timestamp'] || r['timestamp'] || '');
+        return isNaN(d) ? '' : d.toLocaleString('th-TH', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+      } catch { return ''; }
+    });
+
+    const values = src.map(r => parseFloat(r[field] || 0));
+    const color = lineColors[field] || '#2196f3';
+
+    const ctx = document.getElementById('lineChart').getContext('2d');
+    if (lineChartInstance) lineChartInstance.destroy();
+
+    lineChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: field,
+          data: values,
+          borderColor: color,
+          backgroundColor: color + '18',
+          borderWidth: 2,
+          pointRadius: 2,
+          pointBackgroundColor: color,
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.parsed.y.toFixed(1) + (field === 'Temp' ? ' °C' : field === 'Humidity' ? ' %' : ' μg/m³')
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#90a4ae', font: { size: 10 }, maxTicksLimit: 8, maxRotation: 30 },
+            grid: { color: 'rgba(144,164,174,0.15)' }
+          },
+          y: {
+            ticks: { color: '#90a4ae', font: { size: 10 } },
+            grid: { color: 'rgba(144,164,174,0.15)' }
+          }
+        }
+      }
+    });
+  }
+
+
+  let charts = {};
+
+  function getAQIBadge(val, type) {
+    if (type === 'pm25') {
+      if (val <= 25) return '<div class="stat-badge badge-good">✅ ดี</div>';
+      if (val <= 37) return '<div class="stat-badge badge-warn">⚠️ ปานกลาง</div>';
+      return '<div class="stat-badge badge-danger">🚨 อันตราย</div>';
+    }
+    if (type === 'pm10') {
+      if (val <= 50) return '<div class="stat-badge badge-good">✅ ดี</div>';
+      if (val <= 80) return '<div class="stat-badge badge-warn">⚠️ ปานกลาง</div>';
+      return '<div class="stat-badge badge-danger">🚨 อันตราย</div>';
+    }
+    return '';
+  }
+
+  function getRowBadge(val, type) {
+    if (type === 'pm25') {
+      if (val <= 25) return '<span class="pill badge-good">ดี</span>';
+      if (val <= 37) return '<span class="pill badge-warn">ปานกลาง</span>';
+      return '<span class="pill badge-danger">อันตราย</span>';
+    }
+    return '';
+  }
+
+  function makeChart(id, labels, data, color) {
+    const ctx = document.getElementById(id).getContext('2d');
+    if (charts[id]) charts[id].destroy();
+
+    const configs = {
+      chartPM25: { max: 100, unit: 'μg/m³' },
+      chartPM10: { max: 150, unit: 'μg/m³' },
+      chartTemp: { max: 50,  unit: '°C' },
+      chartHumi: { max: 100, unit: '%RH' }
+    };
+
+    const cfg = configs[id] || { max: 100, unit: '' };
+    const latest = data[data.length - 1] || 0;
+    const pct = Math.min(latest / cfg.max, 1);
+
+    charts[id] = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        datasets: [{
+          data: [pct, 1 - pct],
+          backgroundColor: [color, getComputedStyle(document.documentElement).getPropertyValue('--bg2').trim() || '#e3f2fd'],
+          borderWidth: 0,
+          circumference: 270,
+          rotation: 225
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        cutout: '72%',
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        animation: { animateRotate: true, duration: 800 }
+      },
+      plugins: [{
+        id: 'centerText',
+        beforeDraw(chart) {
+          const { ctx, chartArea: { top, bottom, left, right } } = chart;
+          const cx = (left + right) / 2;
+          const cy = (top + bottom) / 2 + 10;
+          ctx.save();
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = color;
+          ctx.font = `700 1.5rem "Kanit", sans-serif`;
+          ctx.fillText(latest.toFixed(1), cx, cy - 8);
+          ctx.fillStyle = '#90a4ae';
+          ctx.font = `0.6rem "Prompt", sans-serif`;
+          ctx.fillText(cfg.unit, cx, cy + 12);
+          ctx.restore();
+        }
+      }]
+    });
+  }
+
+  function formatTs(ts) {
+    if (!ts) return '-';
+    try {
+      const d = new Date(ts);
+      if (isNaN(d)) return ts;
+      return d.toLocaleString('th-TH', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+    } catch { return ts; }
+  }
+
+  function loadData() {
+    const url = document.getElementById('sheetUrl').value.trim();
+    if (!url) { alert('กรุณากรอก URL ก่อนครับ'); return; }
+
+    document.getElementById('statusText').textContent = 'กำลังโหลด...';
+    document.getElementById('tableWrap').innerHTML = '<div class="msg">⏳ กำลังโหลดข้อมูล...</div>';
+
+    const old = document.getElementById('jsonp-script');
+    if (old) old.remove();
+
+    window._jsonpCallback = function(data) { renderData(data); };
+
+    const script = document.createElement('script');
+    script.id = 'jsonp-script';
+    script.src = url + '?callback=_jsonpCallback';
+    script.onerror = () => {
+      document.getElementById('statusText').textContent = 'ERROR';
+      document.getElementById('tableWrap').innerHTML = '<div class="msg error">❌ โหลดข้อมูลไม่ได้ครับ</div>';
+    };
+    document.body.appendChild(script);
+  }
+
+  function renderData(data) {
+    try {
+      if (!data || data.length === 0) {
+        document.getElementById('tableWrap').innerHTML = '<div class="msg error">ไม่พบข้อมูลครับ</div>';
+        return;
+      }
+
+      const latest = data[data.length - 1];
+      const pm25 = parseFloat(latest['PM2.5'] || latest['pm25'] || 0);
+      const pm10 = parseFloat(latest['PM10'] || latest['pm10'] || 0);
+      const temp = parseFloat(latest['Temp'] || latest['temp'] || 0);
+      const humi = parseFloat(latest['Humidity'] || latest['humidity'] || 0);
+
+      document.getElementById('valPM25').textContent = pm25.toFixed(1);
+      document.getElementById('valPM10').textContent = pm10.toFixed(1);
+      document.getElementById('valTemp').textContent = temp.toFixed(1);
+      document.getElementById('valHumi').textContent = humi.toFixed(1);
+      document.getElementById('badgePM25').innerHTML = getAQIBadge(pm25, 'pm25');
+      document.getElementById('badgePM10').innerHTML = getAQIBadge(pm10, 'pm10');
+
+      const slice = data.slice(-50);
+      const labels = slice.map(r => (r['Timestamp'] || r['timestamp'] || '').toString().slice(5, 16));
+
+      makeChart('chartPM25', labels, slice.map(r => parseFloat(r['PM2.5']  || r['pm25']     || 0)), '#2196f3');
+      makeChart('chartPM10', labels, slice.map(r => parseFloat(r['PM10']   || r['pm10']     || 0)), '#00bcd4');
+      makeChart('chartTemp',  labels, slice.map(r => parseFloat(r['Temp']   || r['temp']     || 0)), '#ff6f00');
+      makeChart('chartHumi',  labels, slice.map(r => parseFloat(r['Humidity'] || r['humidity'] || 0)), '#1565c0');
+
+      const rows = [...data].reverse().slice(0, 20);
+      document.getElementById('rowCount').textContent = data.length + ' Records';
+      document.getElementById('tableWrap').innerHTML = `
+        <table>
+          <thead><tr><th>Timestamp</th><th>PM2.5</th><th>PM10</th><th>Temp</th><th>Humidity</th><th>Status</th></tr></thead>
+          <tbody>
+            ${rows.map(r => {
+              const p25 = parseFloat(r['PM2.5'] || r['pm25'] || 0);
+              const p10 = parseFloat(r['PM10']  || r['pm10'] || 0);
+              const t   = parseFloat(r['Temp']  || r['temp'] || 0);
+              const h   = parseFloat(r['Humidity'] || r['humidity'] || 0);
+              return `<tr>
+                <td>${formatTs(r['Timestamp'] || r['timestamp'] || '')}</td>
+                <td class="val-pm25">${p25.toFixed(1)}</td>
+                <td class="val-pm10">${p10.toFixed(1)}</td>
+                <td class="val-temp">${t.toFixed(1)}°</td>
+                <td class="val-humi">${h.toFixed(1)}%</td>
+                <td>${getRowBadge(p25, 'pm25')}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+
+      allData = data;
+      drawLineChart(data, currentLine);
+      document.getElementById('statusText').textContent = 'LIVE';
+      document.getElementById('lastUpdate').textContent = 'อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH');
+    } catch(e) {
+      document.getElementById('statusText').textContent = 'ERROR';
+      document.getElementById('tableWrap').innerHTML = '<div class="msg error">❌ เกิดข้อผิดพลาดครับ</div>';
+    }
+  }
+
+  let lastTimestamp = null;
+
+  function smartRefresh() {
+    const url = 'https://script.google.com/macros/s/AKfycbzQVa8DL21CDDQTb4ffwNd8UQSwQXItb23IMkQjTQRzaFr73s_Vd2z28IJrZ5tJeRttCg/exec';
+    const old = document.getElementById('jsonp-check');
+    if (old) old.remove();
+
+    window._checkCallback = function(data) {
+      if (!data || data.length === 0) return;
+      const latest = data[data.length - 1];
+      const ts = latest['Timestamp'] || latest['timestamp'] || '';
+      if (ts !== lastTimestamp) {
+        lastTimestamp = ts;
+        renderData(data);
+        document.getElementById('lastUpdate').textContent =
+          'อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH') + ' ✅ ข้อมูลใหม่';
+      }
+    };
+
+    const script = document.createElement('script');
+    script.id = 'jsonp-check';
+    script.src = url + '?callback=_checkCallback&t=' + Date.now();
+    document.body.appendChild(script);
+  }
+
+  function openModal() {
+    document.getElementById('modalInput').value = document.getElementById('sheetUrl').value;
+    document.getElementById('modalOverlay').classList.add('open');
+    document.getElementById('modalInput').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+
+  function closeModalOutside(e) {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  }
+
+  function saveUrl() {
+    const url = document.getElementById('modalInput').value.trim();
+    if (!url) { alert('กรุณากรอก URL ก่อนครับ'); return; }
+    document.getElementById('sheetUrl').value = url;
+    localStorage.setItem('sheetUrl', url);
+    closeModal();
+    loadData();
+  }
+
+  function toggleTheme() {
+    const html = document.documentElement;
+    const btn = document.getElementById('themeBtn');
+    if (html.getAttribute('data-theme') === 'dark') {
+      html.removeAttribute('data-theme');
+      btn.textContent = '🌙 โหมดมืด';
+      localStorage.setItem('theme', 'light');
+    } else {
+      html.setAttribute('data-theme', 'dark');
+      btn.textContent = '☀️ โหมดสว่าง';
+      localStorage.setItem('theme', 'dark');
+    }
+  }
+
+  window.onload = function() {
+    document.getElementById('sheetUrl').value = 'https://script.google.com/macros/s/AKfycbzQVa8DL21CDDQTb4ffwNd8UQSwQXItb23IMkQjTQRzaFr73s_Vd2z28IJrZ5tJeRttCg/exec';
+    const savedUrl = localStorage.getItem('sheetUrl');
+    if (savedUrl) document.getElementById('sheetUrl').value = savedUrl;
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.getElementById('themeBtn').textContent = '☀️ โหมดสว่าง';
+    }
+    loadData();
+    setInterval(smartRefresh, 5 * 1000);
+  };
+</script>
+</body>
+</html>
