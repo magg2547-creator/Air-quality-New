@@ -524,6 +524,14 @@
     .alert-status { margin-left: 0; }
     .line-chart-header { flex-direction: column; align-items: flex-start; }
     .line-chart-wrap { height: 200px; }
+
+    /* Fix table on mobile */
+    table { font-size: 0.7rem; }
+    thead th { padding: 6px 5px; font-size: 0.55rem; }
+    tbody td { padding: 8px 5px; white-space: nowrap; }
+    tbody td:first-child { font-size: 0.65rem; white-space: nowrap; }
+    .pill { padding: 2px 7px; font-size: 0.58rem; white-space: nowrap; }
+    .table-card { padding: 16px 12px; overflow-x: auto; }
   }
 
   .hidden-until-load {
@@ -1305,6 +1313,13 @@
     try {
       const d = new Date(ts);
       if (isNaN(d)) return ts;
+      const isMobile = window.innerWidth <= 600;
+      if (isMobile) {
+        return d.toLocaleString('th-TH', {
+          month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit'
+        });
+      }
       return d.toLocaleString('th-TH', {
         year: 'numeric', month: '2-digit', day: '2-digit',
         hour: '2-digit', minute: '2-digit', second: '2-digit'
