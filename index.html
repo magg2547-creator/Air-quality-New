@@ -542,6 +542,17 @@
     opacity: 1; pointer-events: auto;
   }
 
+
+  .csv-btn {
+    background: linear-gradient(135deg, #10b981, #06b6d4);
+    color: #fff; border: none; border-radius: 999px; padding: 7px 16px;
+    font-family: 'Prompt', sans-serif; font-size: 0.75rem; font-weight: 700;
+    cursor: pointer; transition: opacity 0.2s, transform 0.1s;
+    box-shadow: 0 3px 10px rgba(16,185,129,0.3);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .csv-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
 </style>
 </head>
 <body>
@@ -747,6 +758,7 @@
       <div style="display:flex;align-items:center;gap:10px;">
         <div class="row-count" id="rowCount">— Records</div>
         <button class="export-btn" onclick="exportPDF()">📄 Export PDF</button>
+        <button class="csv-btn" onclick="exportCSV()">📊 Export CSV</button>
       </div>
     </div>
     <div id="tableWrap"><div class="msg">กรอก URL แล้วกดโหลดข้อมูลครับ</div></div>
@@ -974,6 +986,32 @@
       status.className = 'alert-status';
       status.textContent = '✅ ค่าปกติ — PM2.5 = ' + pm25.toFixed(1) + ' μg/m³';
     }
+  }
+
+
+  function exportCSV() {
+    if (!allData || allData.length === 0) {
+      alert('ยังไม่มีข้อมูลครับ กรุณาโหลดข้อมูลก่อน');
+      return;
+    }
+
+    const headers = ['Timestamp', 'PM2.5', 'PM10', 'Temp', 'Humidity'];
+    const rows = allData.map(r => [
+      r['Timestamp'] || r['timestamp'] || '',
+      parseFloat(r['PM2.5'] || 0).toFixed(1),
+      parseFloat(r['PM10']  || 0).toFixed(1),
+      parseFloat(r['Temp']  || 0).toFixed(1),
+      parseFloat(r['Humidity'] || 0).toFixed(1)
+    ]);
+
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'air-quality-' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function exportPDF() {
