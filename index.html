@@ -723,19 +723,40 @@
     </div>
   </div>
 
-  <!-- Line Chart 7 days -->
+  <!-- Charts Card with Tabs -->
   <div class="line-chart-card hidden-until-load">
     <div class="line-chart-header">
-      <div class="line-chart-title">📈 กราฟย้อนหลัง 7 วัน</div>
+      <div class="avg-title">📈 กราฟข้อมูล</div>
       <div class="line-tabs">
-        <button class="line-tab active" onclick="switchLine('PM2.5')">PM2.5</button>
-        <button class="line-tab" onclick="switchLine('PM10')">PM10</button>
-        <button class="line-tab" onclick="switchLine('Temp')">Temp</button>
-        <button class="line-tab" onclick="switchLine('Humidity')">Humidity</button>
+        <button class="line-tab active" id="chartTabDaily" onclick="switchChartTab('daily', this)">📊 เปรียบเทียบรายวัน</button>
+        <button class="line-tab" id="chartTabLine" onclick="switchChartTab('line', this)">📉 ย้อนหลัง 7 วัน</button>
       </div>
     </div>
-    <div class="line-chart-wrap">
-      <canvas id="lineChart"></canvas>
+
+    <!-- Daily Chart Panel -->
+    <div id="panelDaily">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+        <button class="line-tab active" onclick="switchDaily('PM2.5', this)">PM2.5</button>
+        <button class="line-tab" onclick="switchDaily('PM10', this)">PM10</button>
+        <button class="line-tab" onclick="switchDaily('Temp', this)">Temp</button>
+        <button class="line-tab" onclick="switchDaily('Humidity', this)">Humidity</button>
+      </div>
+      <div class="line-chart-wrap">
+        <canvas id="dailyChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Line Chart Panel -->
+    <div id="panelLine" style="display:none;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+        <button class="line-tab active" onclick="switchLine('PM2.5', this)">PM2.5</button>
+        <button class="line-tab" onclick="switchLine('PM10', this)">PM10</button>
+        <button class="line-tab" onclick="switchLine('Temp', this)">Temp</button>
+        <button class="line-tab" onclick="switchLine('Humidity', this)">Humidity</button>
+      </div>
+      <div class="line-chart-wrap">
+        <canvas id="lineChart"></canvas>
+      </div>
     </div>
   </div>
 
@@ -881,6 +902,129 @@
     document.getElementById('aqiPM10sub').textContent  = l10.sub;
     document.getElementById('aqiPM10box').className    = 'aqi-item ' + l10.cls;
   }
+
+
+
+  // ===== CHART TAB SWITCHER =====
+  function switchChartTab(tab, btn) {
+    document.querySelectorAll('#chartTabDaily, #chartTabLine').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    if (tab === 'daily') {
+      $('panelDaily').style.display = '';
+      $('panelLine').style.display  = 'none';
+      drawDailyChart(allData, currentDaily);
+    } else {
+      $('panelDaily').style.display = 'none';
+      $('panelLine').style.display  = '';
+      drawLineChart(allData, currentLine);
+    }
+  }
+
+  function switchLine(field, btn) {
+    currentLine = field;
+    document.querySelectorAll('#panelLine .line-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    drawLineChart(allData, field);
+  }
+
+
+  // ===== DAILY COMPARISON CHART =====
+  let dailyChart = null;
+  let currentDaily = 'PM2.5';
+
+  function switchDaily(field, btn) {
+    currentDaily = field;
+    document.querySelectorAll('#dailyCard .line-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    drawDailyChart(allData, field);
+  }
+
+  function drawDailyChart(data, field) {
+    if (!data || data.length === 0) return;
+
+    // Group by date
+    const groups = {};
+    data.forEach(r => {
+      const ts = new Date(r['Timestamp'] || r['timestamp'] || '');
+      if (isNaN(ts)) return;
+      const dateKey = ts.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit' });
+      if (!groups[dateKey]) groups[dateKey] = [];
+      const val = parseFloat(r[field] || r[field.toLowerCase()] || 0);
+      if (val > 0) groups[dateKey].push(val);
+    });
+
+    const labels = Object.keys(groups).slice(-14); // max 14 days
+    const avgs   = labels.map(d => {
+      const vals = groups[d];
+      return vals.length ? parseFloat((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1)) : 0;
+    });
+    const maxs = labels.map(d => parseFloat(Math.max(...groups[d]).toFixed(1)));
+    const mins = labels.map(d => parseFloat(Math.min(...groups[d]).toFixed(1)));
+
+    const colors = {
+      'PM2.5':    { bg: 'rgba(67,97,238,0.7)',  border: '#4361ee' },
+      'PM10':     { bg: 'rgba(6,182,212,0.7)',   border: '#06b6d4' },
+      'Temp':     { bg: 'rgba(249,115,22,0.7)',  border: '#f97316' },
+      'Humidity': { bg: 'rgba(59,130,246,0.7)',  border: '#3b82f6' }
+    };
+    const c = colors[field] || colors['PM2.5'];
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+
+    const ctx = document.getElementById('dailyChart');
+    if (!ctx) return;
+
+    if (dailyChart) dailyChart.destroy();
+    dailyChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'เฉลี่ย ' + field,
+            data: avgs,
+            backgroundColor: c.bg,
+            borderColor: c.border,
+            borderWidth: 2,
+            borderRadius: 6,
+          },
+          {
+            label: 'สูงสุด',
+            data: maxs,
+            type: 'line',
+            borderColor: '#ef4444',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            pointRadius: 3,
+            tension: 0.4,
+          },
+          {
+            label: 'ต่ำสุด',
+            data: mins,
+            type: 'line',
+            borderColor: '#10b981',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            pointRadius: 3,
+            tension: 0.4,
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: textColor, font: { family: 'Kanit' }, boxWidth: 12 } }
+        },
+        scales: {
+          x: { ticks: { color: textColor, font: { family: 'Prompt', size: 11 } }, grid: { color: gridColor } },
+          y: { ticks: { color: textColor, font: { family: 'Prompt', size: 11 } }, grid: { color: gridColor } }
+        }
+      }
+    });
+  }
+
 
   // ===== FILTER & SEARCH =====
   function applyFilter() {
@@ -1444,6 +1588,7 @@
       allData = data;
       drawLineChart(data, currentLine);
       updateAverage(data);
+      drawDailyChart(data, currentDaily);
       document.getElementById("rowCount").textContent = data.length + " Records";
       document.querySelectorAll('.hidden-until-load').forEach(el => el.classList.add('revealed'));
       renderTable(data);
