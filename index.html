@@ -1591,7 +1591,6 @@
       updateAverage(data);
       drawDailyChart(data, currentDaily);
       document.getElementById("rowCount").textContent = data.length + " Records";
-      document.querySelectorAll('.').forEach(el => el.classList.add('revealed'));
       renderTable(data);
       $('statusText').textContent = 'LIVE';
       $('lastUpdate').textContent = 'อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH');
