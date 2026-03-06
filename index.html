@@ -726,6 +726,51 @@
   @keyframes loaderBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
   @keyframes loaderFill   { from{width:0%} to{width:100%} }
 
+
+  /* DARK MODE FIXES */
+  [data-theme="dark"] .badge-good   { background: rgba(16,185,129,0.2);  color: #6ee7b7; }
+  [data-theme="dark"] .badge-warn   { background: rgba(245,158,11,0.2);  color: #fcd34d; }
+  [data-theme="dark"] .badge-danger { background: rgba(239,68,68,0.2);   color: #fca5a5; }
+
+  [data-theme="dark"] .aqi-good     { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+  [data-theme="dark"] .aqi-moderate { background: rgba(245,158,11,0.15); color: #fcd34d; }
+  [data-theme="dark"] .aqi-sensitive{ background: rgba(249,115,22,0.15); color: #fdba74; }
+  [data-theme="dark"] .aqi-unhealthy{ background: rgba(239,68,68,0.15);  color: #fca5a5; }
+  [data-theme="dark"] .aqi-very     { background: rgba(139,92,246,0.15); color: #c4b5fd; }
+
+  [data-theme="dark"] .std-item-title { color: var(--text2); }
+  [data-theme="dark"] .std-row-label  { color: var(--text2); }
+  [data-theme="dark"] .std-row-val    { color: var(--text); }
+
+  [data-theme="dark"] .avg-item { background: var(--bg2); border-color: var(--border); }
+  [data-theme="dark"] .chart-title { color: var(--text2); }
+
+  [data-theme="dark"] .filter-label { color: var(--text2); }
+  [data-theme="dark"] .modal-sub    { color: var(--text2); }
+  [data-theme="dark"] .qr-url       { color: var(--text2); }
+
+  [data-theme="dark"] .status-pill  { background: rgba(52,211,153,0.15); border-color: rgba(52,211,153,0.3); }
+  [data-theme="dark"] thead th      { color: var(--text2); border-color: var(--border); }
+  [data-theme="dark"] tbody tr      { border-color: var(--border); }
+  [data-theme="dark"] .loader-sub   { color: var(--text2); }
+  [data-theme="dark"] .conn-sub     { color: var(--text2); }
+
+  [data-theme="dark"] .stat-unit    { color: var(--text2); }
+  [data-theme="dark"] .avg-item-unit,
+  [data-theme="dark"] .avg-item-sub { color: var(--text2); }
+  [data-theme="dark"] .last-update  { color: var(--text2); }
+  [data-theme="dark"] .chart-wrap canvas { opacity: 0.95; }
+
+
+  [data-theme="dark"] .logo-area p       { color: var(--text2); }
+  [data-theme="dark"] .aqi-item-sub      { color: var(--text2); }
+  [data-theme="dark"] .aqi-item-desc     { color: inherit; }
+  [data-theme="dark"] tbody td:first-child { color: var(--text2); }
+  [data-theme="dark"] .table-title       { color: var(--text); }
+  [data-theme="dark"] .alert-label       { color: var(--text); }
+  [data-theme="dark"] .alert-status      { color: var(--text2); }
+  [data-theme="dark"] .filter-bar span   { color: var(--text2); }
+
 </style>
 </head>
 <body>
