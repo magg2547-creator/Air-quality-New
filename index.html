@@ -1698,7 +1698,7 @@
         maintainAspectRatio: true,
         cutout: '72%',
         plugins: { legend: { display: false }, tooltip: { enabled: false } },
-        animation: { animateRotate: true, duration: 800 }
+        animation: { animateRotate: true, animateScale: true, duration: 1000, easing: 'easeOutQuart' }
       },
       plugins: [{
         id: 'centerText',
@@ -1762,7 +1762,8 @@
   function animateNumber(elementId, targetVal, duration=800, decimals=1) {
     const el = document.getElementById(elementId);
     if (!el) return;
-    const start = parseFloat(el.textContent) || 0;
+    const current = parseFloat(el.textContent);
+    const start = (isNaN(current) || el.textContent === '—') ? 0 : current;
     const startTime = performance.now();
 
     function update(currentTime) {
@@ -1845,7 +1846,7 @@
 
       const pm25El = $('valPM25');
       const prevPM25 = parseFloat(pm25El.textContent) || 0;
-      $('valPM25').textContent = pm25.toFixed(1);
+      animateNumber('valPM25', pm25);
       if (Math.abs(pm25 - prevPM25) >= 5 && prevPM25 !== 0) {
         pm25El.classList.remove('value-jump');
         // retrigger animation
@@ -1855,9 +1856,9 @@
       checkAlert(pm25);
       calcAQI(pm25, pm10);
       updateStandards(pm25, pm10);
-      $('valPM10').textContent = pm10.toFixed(1);
-      $('valTemp').textContent = temp.toFixed(1);
-      $('valHumi').textContent = humi.toFixed(1);
+      animateNumber('valPM10', pm10);
+      animateNumber('valTemp', temp);
+      animateNumber('valHumi', humi);
       $('badgePM25').innerHTML = getAQIBadge(pm25, 'pm25');
       $('badgePM10').innerHTML = getAQIBadge(pm10, 'pm10');
 
