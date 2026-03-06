@@ -648,6 +648,55 @@
   }
   [data-tip]:hover::after, [data-tip]:hover::before { opacity: 1; }
 
+
+  /* ── PAGE LOADER ── */
+  #pageLoader {
+    position: fixed; inset: 0; z-index: 99999;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 20px;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+  }
+  #pageLoader.hidden { opacity: 0; visibility: hidden; }
+
+  .loader-icon {
+    font-size: 3rem;
+    animation: loaderBounce 1s ease-in-out infinite;
+  }
+  .loader-title {
+    font-family: "Kanit", sans-serif;
+    font-size: 1.2rem; font-weight: 700;
+    color: var(--text); letter-spacing: -0.3px;
+  }
+  .loader-bar {
+    width: 180px; height: 4px;
+    background: var(--border); border-radius: 999px; overflow: hidden;
+  }
+  .loader-fill {
+    height: 100%; border-radius: 999px;
+    background: linear-gradient(90deg, var(--blue), var(--teal));
+    animation: loaderFill 1.2s ease forwards;
+  }
+  .loader-sub {
+    font-size: 0.72rem; color: var(--muted);
+    font-family: "Prompt", sans-serif;
+  }
+  @keyframes loaderBounce {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-10px); }
+  }
+  @keyframes loaderFill {
+    from { width: 0%; }
+    to   { width: 100%; }
+  }
+
+  /* Page fade in */
+  .wrapper { animation: pageFadeIn 0.5s ease 0.3s both; }
+  @keyframes pageFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
 </style>
 </head>
 <body>
@@ -1723,6 +1772,8 @@
       $('statusText').textContent = 'LIVE';
       hideSkeleton();
       showToast('อัปเดตข้อมูลแล้วครับ', 'success');
+      const loader = document.getElementById('pageLoader');
+      if (loader) loader.classList.add('hidden');
       $('lastUpdate').textContent = 'อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH');
     } catch(e) {
       $('statusText').textContent = 'ERROR';
