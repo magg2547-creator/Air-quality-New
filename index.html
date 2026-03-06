@@ -797,7 +797,7 @@
   </div>
 
   <div id="tabOverview" class="main-tab-panel active">
-    <div class="stat-grid">
+    <div class="stat-grid" id="snapStart">
       <div class="stat-card pm25" data-icon="🌫️">
         <div class="stat-label">PM2.5</div>
         <div class="stat-val" id="valPM25">—</div>
@@ -981,8 +981,7 @@
       <div class="table-header">
       <div class="table-title">📋 Data Log</div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <div class="row-count" id="rowCount">— Records</div>
-          <button class="export-btn" onclick="exportPDF()">📄 Export PDF</button>
+            <button class="export-btn" onclick="exportPDF()">📄 Export PDF</button>
           <button class="csv-btn" onclick="exportCSV()">📊 Export CSV</button>
         <button class="csv-btn" onclick="captureDashboard()">🖼️ Snapshot</button>
         </div>
@@ -1290,7 +1289,6 @@
     });
 
     renderTable(filtered);
-    $('rowCount').textContent = filtered.length + ' / ' + allData.length + ' Records';
   }
 
   function resetFilter() {
@@ -1298,7 +1296,6 @@
     $('filterTo').value    = '';
     $('searchInput').value = '';
     renderTable(allData);
-    $('rowCount').textContent = allData.length + ' Records';
   }
 
   function renderTable(data) {
@@ -1518,22 +1515,37 @@
   }
 
   function captureDashboard() {
+    if (!window.html2canvas) { alert('ไม่สามารถถ่าย Snapshot ได้'); return; }
+
+    // ซ่อน section ที่ไม่ต้องการชั่วคราว
+    const hideList = [
+      document.querySelector('.filter-bar'),
+      document.querySelector('.table-card'),
+      document.querySelector('.last-update'),
+      document.querySelector('.alert-bar'),
+      document.querySelector('.std-card'),
+      document.querySelector('.avg-card'),
+    ].filter(Boolean);
+
+    hideList.forEach(el => el.style.display = 'none');
+
     const target = document.querySelector('.wrapper');
-    if (!target || !window.html2canvas) {
-      alert('ไม่สามารถถ่าย Snapshot ได้');
-      return;
-    }
-    html2canvas(target, { scale: 2 }).then(canvas => {
+    html2canvas(target, {
+      scale: 2, useCORS: true,
+      backgroundColor: getComputedStyle(document.documentElement)
+        .getPropertyValue('--bg').trim() || '#f5f7ff'
+    }).then(canvas => {
+      hideList.forEach(el => el.style.display = '');
       canvas.toBlob(blob => {
         if (!blob) return;
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'air-quality-dashboard-' + new Date().toISOString().slice(0,10) + '.png';
+        a.download = 'air-quality-' + new Date().toISOString().slice(0,10) + '.png';
         a.click();
         URL.revokeObjectURL(url);
       });
-    });
+    }).catch(() => { hideList.forEach(el => el.style.display = ''); });
   }
 
   let lineChartInstance = null;
@@ -1858,7 +1870,6 @@
       makeChart('chartHumi',  labels, slice.map(r => parseFloat(r['Humidity'] || r['humidity'] || 0)), '#1565c0');
 
       const rows = [...data].reverse().slice(0, 20);
-      $('rowCount').textContent = data.length + ' Records';
       $('tableWrap').innerHTML = `
         <table>
           <thead><tr><th>Timestamp</th><th>PM2.5</th><th>PM10</th><th>Temp</th><th>Humidity</th><th>Status</th></tr></thead>
@@ -1884,8 +1895,7 @@
       drawLineChart(data, currentLine);
       updateAverage(data);
       drawDailyChart(data, currentDaily);
-      document.getElementById("rowCount").textContent = data.length + " Records";
-      renderTable(data);
+            renderTable(data);
       $('statusText').textContent = 'LIVE';
       const ldr = document.getElementById('pageLoader'); if(ldr) ldr.classList.add('hidden');
       $('lastUpdate').textContent = 'อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH');
