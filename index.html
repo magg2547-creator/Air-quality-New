@@ -584,7 +584,6 @@
     <input type="text" id="sheetUrl" placeholder="วาง Apps Script Web App URL ที่นี่..."/>
     <button onclick="loadData()">🔄 โหลดข้อมูล</button>
   </div>
-
   <!-- Alert Bar -->
   <div class="alert-bar" id="alertBar">
     <div class="alert-label">🔔 แจ้งเตือนเสียง</div>
@@ -940,6 +939,7 @@
         </tbody>
       </table>`;
   }
+
 
   function updateAverage(data) {
     if (!data || data.length === 0) return;
@@ -1458,30 +1458,6 @@
   let lastTimestamp = null;
 
 
-  // ===== COUNTDOWN TIMER =====
-  let countdownVal = 3600;
-  let countdownInterval = null;
-
-  function startCountdown() {
-    countdownVal = 5;
-    if (countdownInterval) clearInterval(countdownInterval);
-    countdownInterval = setInterval(() => {
-      countdownVal--;
-      const el = $('countdownText');
-      if (el) {
-        if (countdownVal > 0) {
-          const m = Math.floor(countdownVal / 60).toString().padStart(2,'0');
-          const s = (countdownVal % 60).toString().padStart(2,'0');
-          el.textContent = '— ' + m + ':' + s;
-        } else {
-          el.textContent = '— กำลังเช็ค...';
-          countdownVal = 3600;
-        }
-      }
-    }, 1000);
-  }
-
-
 
   function smartRefresh() {
     const url = 'https://script.google.com/macros/s/AKfycbzQVa8DL21CDDQTb4ffwNd8UQSwQXItb23IMkQjTQRzaFr73s_Vd2z28IJrZ5tJeRttCg/exec';
@@ -1527,6 +1503,7 @@
     btn.innerHTML = '<span class="spin">⟳</span> Refresh';
     btn.disabled = true;
     loadData();
+    setInterval(smartRefresh, 5 * 60 * 1000);
     setTimeout(() => {
       btn.innerHTML = '⟳ Refresh';
       btn.disabled = false;
