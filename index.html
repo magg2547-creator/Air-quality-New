@@ -934,7 +934,7 @@
 
   function switchDaily(field, btn) {
     currentDaily = field;
-    document.querySelectorAll('#dailyCard .line-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('#panelDaily .line-tab').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
     drawDailyChart(allData, field);
   }
@@ -958,8 +958,6 @@
       const vals = groups[d];
       return vals.length ? parseFloat((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1)) : 0;
     });
-    const maxs = labels.map(d => parseFloat(Math.max(...groups[d]).toFixed(1)));
-    const mins = labels.map(d => parseFloat(Math.min(...groups[d]).toFixed(1)));
 
     const colors = {
       'PM2.5':    { bg: 'rgba(67,97,238,0.7)',  border: '#4361ee' },
@@ -989,28 +987,8 @@
             borderColor: c.border,
             borderWidth: 2,
             borderRadius: 6,
-          },
-          {
-            label: 'สูงสุด',
-            data: maxs,
-            type: 'line',
-            borderColor: '#ef4444',
-            backgroundColor: 'transparent',
-            borderWidth: 2,
-            pointRadius: 3,
-            tension: 0.4,
-          },
-          {
-            label: 'ต่ำสุด',
-            data: mins,
-            type: 'line',
-            borderColor: '#10b981',
-            backgroundColor: 'transparent',
-            borderWidth: 2,
-            pointRadius: 3,
-            tension: 0.4,
           }
-        ]
+        ],
       },
       options: {
         responsive: true, maintainAspectRatio: false,
