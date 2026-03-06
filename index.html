@@ -912,10 +912,16 @@
     if (tab === 'daily') {
       $('panelDaily').style.display = '';
       $('panelLine').style.display  = 'none';
+      // Restore daily sub-tab active
+      $('panelDaily').querySelectorAll('.line-tab').forEach(t => t.classList.remove('active'));
+      $('panelDaily').querySelectorAll('.line-tab').forEach(t => { if (t.textContent === currentDaily) t.classList.add('active'); });
       drawDailyChart(allData, currentDaily);
     } else {
       $('panelDaily').style.display = 'none';
       $('panelLine').style.display  = '';
+      // Restore line sub-tab active
+      $('panelLine').querySelectorAll('.line-tab').forEach(t => t.classList.remove('active'));
+      $('panelLine').querySelectorAll('.line-tab').forEach(t => { if (t.textContent === currentLine) t.classList.add('active'); });
       drawLineChart(allData, currentLine);
     }
   }
