@@ -534,11 +534,11 @@
     .table-card { padding: 16px 12px; overflow-x: auto; }
   }
 
-  .hidden-until-load {
+  . {
     opacity: 0; pointer-events: none;
     transition: opacity 0.5s ease;
   }
-  .hidden-until-load.revealed {
+  ..revealed {
     opacity: 1; pointer-events: auto;
   }
 
@@ -552,6 +552,21 @@
     display: flex; align-items: center; gap: 5px;
   }
   .csv-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+
+  .chart-main-tabs { display: flex; gap: 8px; }
+  .chart-main-tab {
+    padding: 7px 16px; border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: var(--bg2); color: var(--text2); cursor: pointer;
+    font-family: "Kanit", sans-serif; font-size: 0.78rem; font-weight: 600;
+    transition: all 0.2s;
+  }
+  .chart-main-tab.active {
+    background: var(--blue); color: #fff; border-color: var(--blue);
+    box-shadow: 0 2px 10px rgba(67,97,238,0.35);
+  }
+  .chart-main-tab:not(.active):hover { background: var(--blue-light); color: var(--blue); border-color: var(--blue); }
 
 </style>
 </head>
@@ -596,7 +611,7 @@
     <div class="alert-status" id="alertStatus">— รอข้อมูล</div>
   </div>
 
-  <div class="stat-grid hidden-until-load">
+  <div class="stat-grid">
     <div class="stat-card pm25" data-icon="🌫️">
       <div class="stat-label">PM2.5</div>
       <div class="stat-val" id="valPM25">—</div>
@@ -622,7 +637,7 @@
   </div>
 
   <!-- AQI Card -->
-  <div class="aqi-card hidden-until-load">
+  <div class="aqi-card">
     <div class="aqi-title">🌡️ ดัชนีคุณภาพอากาศ (AQI)</div>
     <div class="aqi-grid">
       <div class="aqi-item" id="aqiPM25box">
@@ -641,7 +656,7 @@
   </div>
 
   <!-- Standards Comparison Card -->
-  <div class="std-card hidden-until-load">
+  <div class="std-card">
     <div class="std-title">📊 เปรียบเทียบกับมาตรฐาน</div>
     <div class="std-grid">
       <div class="std-item">
@@ -674,7 +689,7 @@
   </div>
 
   <!-- Average Card -->
-  <div class="avg-card hidden-until-load">
+  <div class="avg-card">
     <div class="avg-title">📊 ค่าเฉลี่ย (ข้อมูลทั้งหมด)</div>
     <div class="avg-grid">
       <div class="avg-item pm25">
@@ -704,7 +719,7 @@
     </div>
   </div>
 
-  <div class="charts-grid hidden-until-load">
+  <div class="charts-grid">
     <div class="chart-card">
       <div class="chart-title">PM2.5</div>
       <div class="chart-wrap"><canvas id="chartPM25"></canvas></div>
@@ -724,12 +739,12 @@
   </div>
 
   <!-- Charts Card with Tabs -->
-  <div class="line-chart-card hidden-until-load">
+  <div class="line-chart-card">
     <div class="line-chart-header">
       <div class="avg-title">📈 กราฟข้อมูล</div>
       <div class="line-tabs">
-        <button class="line-tab active" id="chartTabDaily" onclick="switchChartTab('daily', this)">📊 เปรียบเทียบรายวัน</button>
-        <button class="line-tab" id="chartTabLine" onclick="switchChartTab('line', this)">📉 ย้อนหลัง 7 วัน</button>
+        <button class="chart-main-tab active" id="chartTabDaily" onclick="switchChartTab('daily', this)">📊 เปรียบเทียบรายวัน</button>
+        <button class="chart-main-tab" id="chartTabLine" onclick="switchChartTab('line', this)">📉 ย้อนหลัง 7 วัน</button>
       </div>
     </div>
 
@@ -761,7 +776,7 @@
   </div>
 
   <!-- Filter & Search Bar -->
-  <div class="filter-bar hidden-until-load">
+  <div class="filter-bar">
     <span class="filter-label">📅 ช่วงวันที่:</span>
     <input class="filter-input" type="date" id="filterFrom"/>
     <span style="font-size:0.78rem;color:var(--muted);">ถึง</span>
@@ -772,7 +787,7 @@
     <input class="search-input" type="text" id="searchInput" placeholder="ค้นหา Timestamp..." oninput="applyFilter()"/>
   </div>
 
-  <div class="table-card hidden-until-load">
+  <div class="table-card">
     <div class="table-header">
       <div class="table-title">📋 Data Log</div>
       <div style="display:flex;align-items:center;gap:10px;">
@@ -907,7 +922,7 @@
 
   // ===== CHART TAB SWITCHER =====
   function switchChartTab(tab, btn) {
-    document.querySelectorAll('#chartTabDaily, #chartTabLine').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.chart-main-tab').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
     if (tab === 'daily') {
       $('panelDaily').style.display = '';
@@ -1576,7 +1591,7 @@
       updateAverage(data);
       drawDailyChart(data, currentDaily);
       document.getElementById("rowCount").textContent = data.length + " Records";
-      document.querySelectorAll('.hidden-until-load').forEach(el => el.classList.add('revealed'));
+      document.querySelectorAll('.').forEach(el => el.classList.add('revealed'));
       renderTable(data);
       $('statusText').textContent = 'LIVE';
       $('lastUpdate').textContent = 'อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH');
