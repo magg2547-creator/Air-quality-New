@@ -668,7 +668,6 @@
         <button class="dropdown-btn" onclick="toggleDropdown()">⚙️ เมนู ▾</button>
         <div class="dropdown-menu" id="dropdownMenu">
           <button class="dropdown-item" onclick="showQR();closeDropdown()">📸 QR Code</button>
-          <button class="dropdown-item" onclick="openModal();closeDropdown()">⚙️ ตั้งค่า URL</button>
           <button class="dropdown-item" onclick="toggleTheme();closeDropdown()" id="themeBtn">🌙 โหมดมืด</button>
         </div>
       </div>
@@ -1786,27 +1785,8 @@
     }, 2000);
   }
 
-  function openModal() {
-    $('modalInput').value = $('sheetUrl').value;
-    $('modalOverlay').classList.add('open');
-    $('modalInput').focus();
-  }
-
-  function closeModal() {
-    $('modalOverlay').classList.remove('open');
-  }
-
   function closeModalOutside(e) {
     if (e.target === $('modalOverlay')) closeModal();
-  }
-
-  function saveUrl() {
-    const url = $('modalInput').value.trim();
-    if (!url) { alert('กรุณากรอก URL ก่อนครับ'); return; }
-    $('sheetUrl').value = url;
-    localStorage.setItem('sheetUrl', url);
-    closeModal();
-    loadData();
   }
 
   function toggleTheme() {
@@ -1825,8 +1805,6 @@
 
   window.onload = function() {
     $('sheetUrl').value = 'https://script.google.com/macros/s/AKfycbzQVa8DL21CDDQTb4ffwNd8UQSwQXItb23IMkQjTQRzaFr73s_Vd2z28IJrZ5tJeRttCg/exec';
-    const savedUrl = localStorage.getItem('sheetUrl');
-    if (savedUrl) $('sheetUrl').value = savedUrl;
     const saved = localStorage.getItem('theme');
     if (saved === 'dark') {
       document.documentElement.setAttribute('data-theme', 'dark');
