@@ -637,7 +637,6 @@
   }
   .chart-main-tab:not(.active):hover { background: var(--blue-light); color: var(--blue); border-color: var(--blue); }
 
-<<<<<<< HEAD
   /* ── MAIN TABS (OVERVIEW / STATS / RAW) ── */
   .main-tabs {
     display: flex;
@@ -705,8 +704,6 @@
   }
 
   </style>
-=======
-</style>
 </head>
 <body>
 <div class="top-progress" id="topProgress"></div>
@@ -1829,34 +1826,12 @@
       makeChart('chartTemp',  labels, slice.map(r => parseFloat(r['Temp']   || r['temp']     || 0)), '#ff6f00');
       makeChart('chartHumi',  labels, slice.map(r => parseFloat(r['Humidity'] || r['humidity'] || 0)), '#1565c0');
 
-      const rows = [...data].reverse().slice(0, 20);
-      $('rowCount').textContent = data.length + ' Records';
-      $('tableWrap').innerHTML = `
-        <table>
-          <thead><tr><th>Timestamp</th><th>PM2.5</th><th>PM10</th><th>Temp</th><th>Humidity</th><th>Status</th></tr></thead>
-          <tbody>
-            ${rows.map(r => {
-              const p25 = parseFloat(r['PM2.5'] || r['pm25'] || 0);
-              const p10 = parseFloat(r['PM10']  || r['pm10'] || 0);
-              const t   = parseFloat(r['Temp']  || r['temp'] || 0);
-              const h   = parseFloat(r['Humidity'] || r['humidity'] || 0);
-              return `<tr>
-                <td>${formatTs(r['Timestamp'] || r['timestamp'] || '')}</td>
-                <td class="val-pm25">${p25.toFixed(1)}</td>
-                <td class="val-pm10">${p10.toFixed(1)}</td>
-                <td class="val-temp">${t.toFixed(1)}°</td>
-                <td class="val-humi">${h.toFixed(1)}%</td>
-                <td>${getRowBadge(p25, 'pm25')}</td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>`;
+
 
       allData = data;
       drawLineChart(data, currentLine);
       updateAverage(data);
       drawDailyChart(data, currentDaily);
-      document.getElementById("rowCount").textContent = data.length + " Records";
       renderTable(data);
       $('statusText').textContent = 'LIVE';
       $('lastUpdate').textContent = 'อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH');
@@ -1987,15 +1962,13 @@
 
   window.onload = function() {
     $('sheetUrl').value = 'https://script.google.com/macros/s/AKfycbzQVa8DL21CDDQTb4ffwNd8UQSwQXItb23IMkQjTQRzaFr73s_Vd2z28IJrZ5tJeRttCg/exec';
-    const savedUrl = localStorage.getItem('sheetUrl');
-    if (savedUrl) $('sheetUrl').value = savedUrl;
     const saved = localStorage.getItem('theme');
     if (saved === 'dark') {
       document.documentElement.setAttribute('data-theme', 'dark');
       $('themeBtn').textContent = '☀️ โหมดสว่าง';
     }
     loadData();
-
+    setInterval(smartRefresh, 5 * 60 * 1000);
   };
 
   function toggleTvMode() {
