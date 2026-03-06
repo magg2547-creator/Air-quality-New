@@ -1697,20 +1697,12 @@
     const old = document.getElementById('jsonp-script');
     if (old) old.remove();
 
-    // ใช้ JSONP เพื่อหลีกเลี่ยง CORS
-    const callbackName = '_cb_' + Date.now();
-    window[callbackName] = function(data) {
-      delete window[callbackName];
-      const s = document.getElementById('jsonp-script');
-      if (s) s.remove();
-      renderData(data);
-    };
+    window._jsonpCallback = function(data) { renderData(data); };
 
     const script = document.createElement('script');
     script.id = 'jsonp-script';
-    script.src = url + '?callback=' + callbackName + '&t=' + Date.now();
+    script.src = url + '?callback=_jsonpCallback';
     script.onerror = () => {
-      delete window[callbackName];
       $('statusText').textContent = 'ERROR';
       $('tableWrap').innerHTML = '<div class="msg error">❌ โหลดข้อมูลไม่ได้ครับ</div>';
     };
