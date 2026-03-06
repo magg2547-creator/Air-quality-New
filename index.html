@@ -922,8 +922,9 @@
 
   function switchLine(field, btn) {
     currentLine = field;
-    document.querySelectorAll('#panelLine .line-tab').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
+    const panel = document.getElementById('panelLine');
+    if (panel) panel.querySelectorAll('.line-tab').forEach(t => t.classList.remove('active'));
+    if (btn) btn.classList.add('active');
     drawLineChart(allData, field);
   }
 
@@ -934,8 +935,9 @@
 
   function switchDaily(field, btn) {
     currentDaily = field;
-    document.querySelectorAll('#panelDaily .line-tab').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
+    const panel = document.getElementById('panelDaily');
+    if (panel) panel.querySelectorAll('.line-tab').forEach(t => t.classList.remove('active'));
+    if (btn) btn.classList.add('active');
     drawDailyChart(allData, field);
   }
 
