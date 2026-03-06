@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&family=Prompt:wght@300;400;600&display=swap');
 
@@ -94,6 +95,84 @@
     padding: 16px 24px;
     box-shadow: var(--shadow);
     border: 1px solid var(--border);
+  }
+
+  /* ── SUMMARY CARD ── */
+  .summary-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .summary-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .summary-title {
+    font-family: 'Kanit', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+  }
+  .summary-sub {
+    font-size: 0.8rem;
+    color: var(--text2);
+  }
+  .summary-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: var(--bg2);
+    color: var(--text2);
+  }
+  .summary-extra {
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  /* ── TV MODE ── */
+  .tv-toggle-btn {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 999px;
+    padding: 7px 15px;
+    cursor: pointer;
+    font-family: 'Prompt', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  .tv-toggle-btn:hover {
+    background: var(--blue-light);
+    color: var(--blue);
+    border-color: var(--blue);
+  }
+  .tv-mode .filter-bar,
+  .tv-mode .table-card,
+  .tv-mode .avg-card,
+  .tv-mode .std-card {
+    display: none;
+  }
+  .tv-mode .line-chart-card {
+    margin-top: 4px;
+  }
+  .tv-mode .charts-grid {
+    margin-top: 4px;
   }
 
   .logo-area { display: flex; align-items: center; gap: 14px; }
@@ -534,15 +613,6 @@
     .table-card { padding: 16px 12px; overflow-x: auto; }
   }
 
-  . {
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.5s ease;
-  }
-  ..revealed {
-    opacity: 1; pointer-events: auto;
-  }
-
-
   .csv-btn {
     background: linear-gradient(135deg, #10b981, #06b6d4);
     color: #fff; border: none; border-radius: 999px; padding: 7px 16px;
@@ -552,7 +622,6 @@
     display: flex; align-items: center; gap: 5px;
   }
   .csv-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-
 
   .chart-main-tabs { display: flex; gap: 8px; }
   .chart-main-tab {
@@ -568,138 +637,76 @@
   }
   .chart-main-tab:not(.active):hover { background: var(--blue-light); color: var(--blue); border-color: var(--blue); }
 
+  /* ── MAIN TABS (OVERVIEW / STATS / RAW) ── */
+  .main-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .main-tab {
+    padding: 7px 16px;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: var(--bg2);
+    color: var(--text2);
+    cursor: pointer;
+    font-family: "Kanit", sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .main-tab.active {
+    background: var(--blue);
+    color: #fff;
+    border-color: var(--blue);
+    box-shadow: 0 2px 10px rgba(67,97,238,0.35);
+  }
+  .main-tab:not(.active):hover {
+    background: var(--blue-light);
+    color: var(--blue);
+    border-color: var(--blue);
+  }
+  .main-tab-panel {
+    display: none;
+    animation: slideUp 0.4s ease both;
+  }
+  .main-tab-panel.active {
+    display: block;
+  }
 
-  /* ── SKELETON LOADING ── */
-  .skeleton {
-    background: linear-gradient(90deg, var(--bg2) 25%, var(--border) 50%, var(--bg2) 75%);
-    background-size: 200% 100%;
-    animation: skeletonShimmer 1.4s ease infinite;
-    border-radius: 8px; color: transparent !important;
+  /* ── TOP PROGRESS BAR ── */
+  .top-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0;
+    background: linear-gradient(90deg, var(--blue), var(--teal));
+    box-shadow: 0 0 10px rgba(67,97,238,0.6);
+    z-index: 1200;
+    transition: width 0.3s ease, opacity 0.2s ease;
+    opacity: 0;
     pointer-events: none;
   }
-  @keyframes skeletonShimmer {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-  .skeleton-val { height: 48px; width: 80px; border-radius: 8px; display: inline-block; }
-  .skeleton-badge { height: 20px; width: 60px; border-radius: 999px; display: inline-block; }
-
-  /* ── TOAST NOTIFICATION ── */
-  #toastContainer {
-    position: fixed; bottom: 24px; right: 24px;
-    display: flex; flex-direction: column; gap: 10px;
-    z-index: 9999; pointer-events: none;
-  }
-  .toast {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); padding: 12px 18px;
-    box-shadow: 0 8px 24px rgba(15,23,42,0.15);
-    font-family: "Prompt", sans-serif; font-size: 0.8rem;
-    color: var(--text); display: flex; align-items: center; gap: 10px;
-    pointer-events: auto; min-width: 220px;
-    animation: toastIn 0.3s cubic-bezier(.4,0,.2,1);
-    border-left: 4px solid var(--blue);
-  }
-  .toast.success { border-left-color: var(--green); }
-  .toast.error   { border-left-color: var(--red); }
-  .toast.warn    { border-left-color: var(--yellow); }
-  @keyframes toastIn {
-    from { opacity: 0; transform: translateX(30px); }
-    to   { opacity: 1; transform: translateX(0); }
-  }
-  @keyframes toastOut {
-    from { opacity: 1; transform: translateX(0); }
-    to   { opacity: 0; transform: translateX(30px); }
+  .top-progress.active {
+    opacity: 1;
   }
 
-  /* ── EMPTY STATE ── */
-  .empty-state {
-    text-align: center; padding: 48px 24px;
-    color: var(--muted);
+  /* ── VALUE CHANGE ANIMATION ── */
+  .value-jump {
+    animation: valueJump 0.6s ease;
   }
-  .empty-state .empty-icon { font-size: 3.5rem; margin-bottom: 12px; }
-  .empty-state .empty-title {
-    font-family: "Kanit", sans-serif; font-size: 1rem;
-    font-weight: 600; color: var(--text2); margin-bottom: 6px;
-  }
-  .empty-state .empty-sub { font-size: 0.78rem; color: var(--muted); }
-
-  /* ── TOOLTIP ── */
-  [data-tip] { position: relative; cursor: help; }
-  [data-tip]::after {
-    content: attr(data-tip);
-    position: absolute; bottom: calc(100% + 8px); left: 50%;
-    transform: translateX(-50%);
-    background: #0f172a; color: #f1f5f9;
-    font-family: "Prompt", sans-serif; font-size: 0.68rem;
-    padding: 6px 10px; border-radius: 8px;
-    white-space: nowrap; pointer-events: none;
-    opacity: 0; transition: opacity 0.2s;
-    z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-  }
-  [data-tip]::before {
-    content: '';
-    position: absolute; bottom: calc(100% + 2px); left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-top-color: #0f172a;
-    opacity: 0; transition: opacity 0.2s;
-    pointer-events: none; z-index: 999;
-  }
-  [data-tip]:hover::after, [data-tip]:hover::before { opacity: 1; }
-
-
-  /* ── PAGE LOADER ── */
-  #pageLoader {
-    position: fixed; inset: 0; z-index: 99999;
-    background: var(--bg);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 20px;
-    transition: opacity 0.5s ease, visibility 0.5s ease;
-  }
-  #pageLoader.hidden { opacity: 0; visibility: hidden; }
-
-  .loader-icon {
-    font-size: 3rem;
-    animation: loaderBounce 1s ease-in-out infinite;
-  }
-  .loader-title {
-    font-family: "Kanit", sans-serif;
-    font-size: 1.2rem; font-weight: 700;
-    color: var(--text); letter-spacing: -0.3px;
-  }
-  .loader-bar {
-    width: 180px; height: 4px;
-    background: var(--border); border-radius: 999px; overflow: hidden;
-  }
-  .loader-fill {
-    height: 100%; border-radius: 999px;
-    background: linear-gradient(90deg, var(--blue), var(--teal));
-    animation: loaderFill 1.2s ease forwards;
-  }
-  .loader-sub {
-    font-size: 0.72rem; color: var(--muted);
-    font-family: "Prompt", sans-serif;
-  }
-  @keyframes loaderBounce {
-    0%,100% { transform: translateY(0); }
-    50%      { transform: translateY(-10px); }
-  }
-  @keyframes loaderFill {
-    from { width: 0%; }
-    to   { width: 100%; }
+  @keyframes valueJump {
+    0% { transform: scale(1); color: var(--blue); }
+    20% { transform: scale(1.15); color: var(--red); }
+    100% { transform: scale(1); color: var(--blue); }
   }
 
-  /* Page fade in */
-  .wrapper { animation: pageFadeIn 0.5s ease 0.3s both; }
-  @keyframes pageFadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-</style>
+  </style>
 </head>
 <body>
+<div class="top-progress" id="topProgress"></div>
 <div class="wrapper">
 
   <header>
@@ -713,10 +720,12 @@
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <div class="status-pill"><div class="dot"></div><span id="statusText">READY</span></div>
       <button class="settings-btn" id="refreshBtn" onclick="refreshClick()">⟳ Refresh</button>
+      <button class="tv-toggle-btn" id="tvToggleBtn" onclick="toggleTvMode()">📺 โหมดหน้าจอใหญ่</button>
       <div class="dropdown-wrap">
         <button class="dropdown-btn" onclick="toggleDropdown()">⚙️ เมนู ▾</button>
         <div class="dropdown-menu" id="dropdownMenu">
           <button class="dropdown-item" onclick="showQR();closeDropdown()">📸 QR Code</button>
+          <button class="dropdown-item" onclick="openModal();closeDropdown()">⚙️ ตั้งค่า URL</button>
           <button class="dropdown-item" onclick="toggleTheme();closeDropdown()" id="themeBtn">🌙 โหมดมืด</button>
         </div>
       </div>
@@ -734,197 +743,222 @@
       <span style="font-size:0.78rem;color:var(--text2);">PM2.5 เกิน</span>
       <input class="alert-input" type="number" id="alertThreshold" value="37" min="1" max="200"/>
       <span style="font-size:0.78rem;color:var(--text2);">μg/m³</span>
+      <button class="alert-toggle" style="padding:4px 10px;font-size:0.7rem;" onclick="setAlertPreset(15)">WHO 15</button>
+      <button class="alert-toggle" style="padding:4px 10px;font-size:0.7rem;" onclick="setAlertPreset(37.5)">TH 37.5</button>
       <button class="alert-toggle" id="alertToggle" onclick="toggleAlert()">🔕 ปิดอยู่</button>
     </div>
     <div class="alert-status" id="alertStatus">— รอข้อมูล</div>
   </div>
 
-  <div class="stat-grid">
-    <div class="stat-card pm25" data-icon="🌫️">
-      <div class="stat-label">PM2.5</div>
-      <div class="stat-val" id="valPM25">—</div>
-      <div class="stat-unit">μg/m³</div>
-      <div id="badgePM25"></div>
+  <div class="summary-card" id="summaryCard">
+    <div class="summary-main">
+      <div class="summary-title" id="summaryTitle">ภาพรวมคุณภาพอากาศวันนี้</div>
+      <div class="summary-sub" id="summarySub">รอข้อมูลล่าสุดจากเซ็นเซอร์...</div>
     </div>
-    <div class="stat-card pm10" data-icon="💧">
-      <div class="stat-label">PM10</div>
-      <div class="stat-val" id="valPM10">—</div>
-      <div class="stat-unit">μg/m³</div>
-      <div id="badgePM10"></div>
-    </div>
-    <div class="stat-card temp" data-icon="🌡️">
-      <div class="stat-label">Temperature</div>
-      <div class="stat-val" id="valTemp">—</div>
-      <div class="stat-unit">°C</div>
-    </div>
-    <div class="stat-card humi" data-icon="💦">
-      <div class="stat-label">Humidity</div>
-      <div class="stat-val" id="valHumi">—</div>
-      <div class="stat-unit">%RH</div>
+    <div style="text-align:right;">
+      <div class="summary-pill" id="summaryLevel">—</div>
+      <div class="summary-extra" id="summaryExtra">-</div>
     </div>
   </div>
-
-  <!-- AQI Card -->
-  <div class="aqi-card">
-    <div class="aqi-title">🌡️ ดัชนีคุณภาพอากาศ (AQI)</div>
-    <div class="aqi-grid">
-      <div class="aqi-item" id="aqiPM25box">
-        <div class="aqi-item-label">AQI จาก PM2.5</div>
-        <div class="aqi-item-val" id="aqiPM25val">—</div>
-        <div class="aqi-item-desc" id="aqiPM25desc">—</div>
-        <div class="aqi-item-sub" id="aqiPM25sub"></div>
-      </div>
-      <div class="aqi-item" id="aqiPM10box">
-        <div class="aqi-item-label">AQI จาก PM10</div>
-        <div class="aqi-item-val" id="aqiPM10val">—</div>
-        <div class="aqi-item-desc" id="aqiPM10desc">—</div>
-        <div class="aqi-item-sub" id="aqiPM10sub"></div>
-      </div>
-    </div>
+  <div class="main-tabs">
+    <button class="main-tab active" id="mainTabOverview" onclick="switchMainTab('tabOverview', this)">ภาพรวม</button>
+    <button class="main-tab" id="mainTabStats" onclick="switchMainTab('tabStats', this)">สถิติ / มาตรฐาน</button>
+    <button class="main-tab" id="mainTabRaw" onclick="switchMainTab('tabRaw', this)">ข้อมูลดิบ</button>
   </div>
 
-  <!-- Standards Comparison Card -->
-  <div class="std-card">
-    <div class="std-title">📊 เปรียบเทียบกับมาตรฐาน</div>
-    <div class="std-grid">
-      <div class="std-item">
-        <div class="std-item-title">🌍 WHO (2021)</div>
-        <div class="std-row">
-          <span class="std-row-label">PM2.5 (24hr)</span>
-          <span class="std-row-val" id="stdWhoPM25">—</span>
+  <div id="tabOverview" class="main-tab-panel active">
+    <div class="stat-grid">
+      <div class="stat-card pm25" data-icon="🌫️">
+        <div class="stat-label">PM2.5</div>
+        <div class="stat-val" id="valPM25">—</div>
+        <div class="stat-unit">μg/m³</div>
+        <div id="badgePM25"></div>
+      </div>
+      <div class="stat-card pm10" data-icon="💧">
+        <div class="stat-label">PM10</div>
+        <div class="stat-val" id="valPM10">—</div>
+        <div class="stat-unit">μg/m³</div>
+        <div id="badgePM10"></div>
+      </div>
+      <div class="stat-card temp" data-icon="🌡️">
+        <div class="stat-label">Temperature</div>
+        <div class="stat-val" id="valTemp">—</div>
+        <div class="stat-unit">°C</div>
+      </div>
+      <div class="stat-card humi" data-icon="💦">
+        <div class="stat-label">Humidity</div>
+        <div class="stat-val" id="valHumi">—</div>
+        <div class="stat-unit">%RH</div>
+      </div>
+    </div>
+
+    <!-- AQI Card -->
+    <div class="aqi-card">
+      <div class="aqi-title">🌡️ ดัชนีคุณภาพอากาศ (AQI)</div>
+      <div class="aqi-grid">
+        <div class="aqi-item" id="aqiPM25box">
+          <div class="aqi-item-label">AQI จาก PM2.5</div>
+          <div class="aqi-item-val" id="aqiPM25val">—</div>
+          <div class="aqi-item-desc" id="aqiPM25desc">—</div>
+          <div class="aqi-item-sub" id="aqiPM25sub"></div>
         </div>
-        <div class="std-row-bar"><div class="std-row-fill" id="fillWhoPM25" style="width:0%"></div></div>
-        <div class="std-row" style="margin-top:8px;">
-          <span class="std-row-label">PM10 (24hr)</span>
-          <span class="std-row-val" id="stdWhoPM10">—</span>
+        <div class="aqi-item" id="aqiPM10box">
+          <div class="aqi-item-label">AQI จาก PM10</div>
+          <div class="aqi-item-val" id="aqiPM10val">—</div>
+          <div class="aqi-item-desc" id="aqiPM10desc">—</div>
+          <div class="aqi-item-sub" id="aqiPM10sub"></div>
         </div>
-        <div class="std-row-bar"><div class="std-row-fill" id="fillWhoPM10" style="width:0%"></div></div>
       </div>
-      <div class="std-item">
-        <div class="std-item-title">🇹🇭 มาตรฐานไทย (กรมควบคุมมลพิษ)</div>
-        <div class="std-row">
-          <span class="std-row-label">PM2.5 (24hr) ≤ 37.5</span>
-          <span class="std-row-val" id="stdThaiPM25">—</span>
+    </div>
+
+    <!-- Charts Card with Tabs -->
+    <div class="line-chart-card">
+      <div class="line-chart-header">
+        <div class="avg-title">📈 กราฟข้อมูล</div>
+        <div class="line-tabs">
+          <button class="chart-main-tab active" id="chartTabDaily" onclick="switchChartTab('daily', this)">📊 เปรียบเทียบรายวัน</button>
+          <button class="chart-main-tab" id="chartTabLine" onclick="switchChartTab('line', this)">📉 ย้อนหลัง 7 วัน</button>
         </div>
-        <div class="std-row-bar"><div class="std-row-fill" id="fillThaiPM25" style="width:0%"></div></div>
-        <div class="std-row" style="margin-top:8px;">
-          <span class="std-row-label">PM10 (24hr) ≤ 120</span>
-          <span class="std-row-val" id="stdThaiPM10">—</span>
+      </div>
+
+      <!-- Daily Chart Panel -->
+      <div id="panelDaily">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <button class="line-tab active" onclick="switchDaily('PM2.5', this)">PM2.5</button>
+          <button class="line-tab" onclick="switchDaily('PM10', this)">PM10</button>
+          <button class="line-tab" onclick="switchDaily('Temp', this)">Temp</button>
+          <button class="line-tab" onclick="switchDaily('Humidity', this)">Humidity</button>
         </div>
-        <div class="std-row-bar"><div class="std-row-fill" id="fillThaiPM10" style="width:0%"></div></div>
+        <div class="line-chart-wrap">
+          <canvas id="dailyChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Line Chart Panel -->
+      <div id="panelLine" style="display:none;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          <button class="line-tab active" onclick="switchLine('PM2.5', this)">PM2.5</button>
+          <button class="line-tab" onclick="switchLine('PM10', this)">PM10</button>
+          <button class="line-tab" onclick="switchLine('Temp', this)">Temp</button>
+          <button class="line-tab" onclick="switchLine('Humidity', this)">Humidity</button>
+        </div>
+        <div class="line-chart-wrap">
+          <canvas id="lineChart"></canvas>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Average Card -->
-  <div class="avg-card">
-    <div class="avg-title">📊 ค่าเฉลี่ย (ข้อมูลทั้งหมด)</div>
-    <div class="avg-grid">
-      <div class="avg-item pm25">
-        <div class="avg-item-label">PM2.5</div>
-        <div class="avg-item-val" id="avgPM25">—</div>
-        <div class="avg-item-unit">μg/m³</div>
-        <div class="avg-item-sub" id="avgPM25range"></div>
+  <div id="tabStats" class="main-tab-panel">
+    <!-- Average Card -->
+    <div class="avg-card">
+      <div class="avg-title">📊 ค่าเฉลี่ย (ข้อมูลทั้งหมด)</div>
+      <div class="avg-grid">
+        <div class="avg-item pm25">
+          <div class="avg-item-label">PM2.5</div>
+          <div class="avg-item-val" id="avgPM25">—</div>
+          <div class="avg-item-unit">μg/m³</div>
+          <div class="avg-item-sub" id="avgPM25range"></div>
+        </div>
+        <div class="avg-item pm10">
+          <div class="avg-item-label">PM10</div>
+          <div class="avg-item-val" id="avgPM10">—</div>
+          <div class="avg-item-unit">μg/m³</div>
+          <div class="avg-item-sub" id="avgPM10range"></div>
+        </div>
+        <div class="avg-item temp">
+          <div class="avg-item-label">Temperature</div>
+          <div class="avg-item-val" id="avgTemp">—</div>
+          <div class="avg-item-unit">°C</div>
+          <div class="avg-item-sub" id="avgTemprange"></div>
+        </div>
+        <div class="avg-item humi">
+          <div class="avg-item-label">Humidity</div>
+          <div class="avg-item-val" id="avgHumi">—</div>
+          <div class="avg-item-unit">%RH</div>
+          <div class="avg-item-sub" id="avgHumirange"></div>
+        </div>
       </div>
-      <div class="avg-item pm10">
-        <div class="avg-item-label">PM10</div>
-        <div class="avg-item-val" id="avgPM10">—</div>
-        <div class="avg-item-unit">μg/m³</div>
-        <div class="avg-item-sub" id="avgPM10range"></div>
+    </div>
+
+    <!-- Standards Comparison Card -->
+    <div class="std-card">
+      <div class="std-title">📊 เปรียบเทียบกับมาตรฐาน</div>
+      <div class="std-grid">
+        <div class="std-item">
+          <div class="std-item-title">🌍 WHO (2021)</div>
+          <div class="std-row">
+            <span class="std-row-label">PM2.5 (24hr)</span>
+            <span class="std-row-val" id="stdWhoPM25">—</span>
+          </div>
+          <div class="std-row-bar"><div class="std-row-fill" id="fillWhoPM25" style="width:0%"></div></div>
+          <div class="std-row" style="margin-top:8px;">
+            <span class="std-row-label">PM10 (24hr)</span>
+            <span class="std-row-val" id="stdWhoPM10">—</span>
+          </div>
+          <div class="std-row-bar"><div class="std-row-fill" id="fillWhoPM10" style="width:0%"></div></div>
+        </div>
+        <div class="std-item">
+          <div class="std-item-title">🇹🇭 มาตรฐานไทย (กรมควบคุมมลพิษ)</div>
+          <div class="std-row">
+            <span class="std-row-label">PM2.5 (24hr) ≤ 37.5</span>
+            <span class="std-row-val" id="stdThaiPM25">—</span>
+          </div>
+          <div class="std-row-bar"><div class="std-row-fill" id="fillThaiPM25" style="width:0%"></div></div>
+          <div class="std-row" style="margin-top:8px;">
+            <span class="std-row-label">PM10 (24hr) ≤ 120</span>
+            <span class="std-row-val" id="stdThaiPM10">—</span>
+          </div>
+          <div class="std-row-bar"><div class="std-row-fill" id="fillThaiPM10" style="width:0%"></div></div>
+        </div>
       </div>
-      <div class="avg-item temp">
-        <div class="avg-item-label">Temperature</div>
-        <div class="avg-item-val" id="avgTemp">—</div>
-        <div class="avg-item-unit">°C</div>
-        <div class="avg-item-sub" id="avgTemprange"></div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">PM2.5</div>
+        <div class="chart-wrap"><canvas id="chartPM25"></canvas></div>
       </div>
-      <div class="avg-item humi">
-        <div class="avg-item-label">Humidity</div>
-        <div class="avg-item-val" id="avgHumi">—</div>
-        <div class="avg-item-unit">%RH</div>
-        <div class="avg-item-sub" id="avgHumirange"></div>
+      <div class="chart-card">
+        <div class="chart-title">PM10</div>
+        <div class="chart-wrap"><canvas id="chartPM10"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Temperature</div>
+        <div class="chart-wrap"><canvas id="chartTemp"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Humidity</div>
+        <div class="chart-wrap"><canvas id="chartHumi"></canvas></div>
       </div>
     </div>
   </div>
 
-  <div class="charts-grid">
-    <div class="chart-card">
-      <div class="chart-title">PM2.5</div>
-      <div class="chart-wrap"><canvas id="chartPM25"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">PM10</div>
-      <div class="chart-wrap"><canvas id="chartPM10"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Temperature</div>
-      <div class="chart-wrap"><canvas id="chartTemp"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Humidity</div>
-      <div class="chart-wrap"><canvas id="chartHumi"></canvas></div>
-    </div>
-  </div>
-
-  <!-- Charts Card with Tabs -->
-  <div class="line-chart-card">
-    <div class="line-chart-header">
-      <div class="avg-title">📈 กราฟข้อมูล</div>
-      <div class="line-tabs">
-        <button class="chart-main-tab active" id="chartTabDaily" onclick="switchChartTab('daily', this)">📊 เปรียบเทียบรายวัน</button>
-        <button class="chart-main-tab" id="chartTabLine" onclick="switchChartTab('line', this)">📉 ย้อนหลัง 7 วัน</button>
-      </div>
+  <div id="tabRaw" class="main-tab-panel">
+    <!-- Filter & Search Bar -->
+    <div class="filter-bar">
+      <span class="filter-label">📅 ช่วงวันที่:</span>
+      <input class="filter-input" type="date" id="filterFrom"/>
+      <span style="font-size:0.78rem;color:var(--muted);">ถึง</span>
+      <input class="filter-input" type="date" id="filterTo"/>
+      <button class="filter-btn" onclick="applyFilter()">กรอง</button>
+      <button class="filter-reset" onclick="resetFilter()">รีเซ็ต</button>
+      <span class="filter-label" style="margin-left:auto;">🔍</span>
+      <input class="search-input" type="text" id="searchInput" placeholder="ค้นหา Timestamp..." oninput="applyFilter()"/>
     </div>
 
-    <!-- Daily Chart Panel -->
-    <div id="panelDaily">
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
-        <button class="line-tab active" onclick="switchDaily('PM2.5', this)">PM2.5</button>
-        <button class="line-tab" onclick="switchDaily('PM10', this)">PM10</button>
-        <button class="line-tab" onclick="switchDaily('Temp', this)">Temp</button>
-        <button class="line-tab" onclick="switchDaily('Humidity', this)">Humidity</button>
-      </div>
-      <div class="line-chart-wrap">
-        <canvas id="dailyChart"></canvas>
-      </div>
-    </div>
-
-    <!-- Line Chart Panel -->
-    <div id="panelLine" style="display:none;">
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
-        <button class="line-tab active" onclick="switchLine('PM2.5', this)">PM2.5</button>
-        <button class="line-tab" onclick="switchLine('PM10', this)">PM10</button>
-        <button class="line-tab" onclick="switchLine('Temp', this)">Temp</button>
-        <button class="line-tab" onclick="switchLine('Humidity', this)">Humidity</button>
-      </div>
-      <div class="line-chart-wrap">
-        <canvas id="lineChart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- Filter & Search Bar -->
-  <div class="filter-bar">
-    <span class="filter-label">📅 ช่วงวันที่:</span>
-    <input class="filter-input" type="date" id="filterFrom"/>
-    <span style="font-size:0.78rem;color:var(--muted);">ถึง</span>
-    <input class="filter-input" type="date" id="filterTo"/>
-    <button class="filter-btn" onclick="applyFilter()">กรอง</button>
-    <button class="filter-reset" onclick="resetFilter()">รีเซ็ต</button>
-    <span class="filter-label" style="margin-left:auto;">🔍</span>
-    <input class="search-input" type="text" id="searchInput" placeholder="ค้นหา Timestamp..." oninput="applyFilter()"/>
-  </div>
-
-  <div class="table-card">
-    <div class="table-header">
+    <div class="table-card">
+      <div class="table-header">
       <div class="table-title">📋 Data Log</div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div class="row-count" id="rowCount">— Records</div>
-        <button class="export-btn" onclick="exportPDF()">📄 Export PDF</button>
-        <button class="csv-btn" onclick="exportCSV()">📊 Export CSV</button>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="row-count" id="rowCount">— Records</div>
+          <button class="export-btn" onclick="exportPDF()">📄 Export PDF</button>
+          <button class="csv-btn" onclick="exportCSV()">📊 Export CSV</button>
+        <button class="csv-btn" onclick="captureDashboard()">🖼️ Snapshot</button>
+        </div>
       </div>
+      <div id="tableWrap"><div class="msg">กรอก URL แล้วกดโหลดข้อมูลครับ</div></div>
     </div>
-    <div id="tableWrap"><div class="msg">กรอก URL แล้วกดโหลดข้อมูลครับ</div></div>
   </div>
 
   <div class="last-update" id="lastUpdate"></div>
@@ -1022,12 +1056,42 @@
       return Math.round((hi - lo) / (cHi - cLo) * (c - cLo) + lo);
     }
     function level(aqi) {
-      if (aqi <= 50)  return { desc: '😊 ดีมาก',        cls: 'aqi-good',      sub: 'คุณภาพอากาศดีเยี่ยม' };
-      if (aqi <= 100) return { desc: '🙂 ปานกลาง',      cls: 'aqi-moderate',  sub: 'ผู้ที่ไวต่อฝุ่นควรระวัง' };
-      if (aqi <= 150) return { desc: '😷 ไม่ดีสำหรับกลุ่มเสี่ยง', cls: 'aqi-sensitive', sub: 'เด็ก ผู้สูงอายุ ควรระวัง' };
-      if (aqi <= 200) return { desc: '🤢 ไม่ดีต่อสุขภาพ', cls: 'aqi-unhealthy', sub: 'ทุกคนอาจได้รับผลกระทบ' };
-      if (aqi <= 300) return { desc: '🚨 อันตรายมาก',   cls: 'aqi-very',      sub: 'หลีกเลี่ยงกิจกรรมกลางแจ้ง' };
-      return           { desc: '☠️ อันตรายร้ายแรง',    cls: 'aqi-hazardous', sub: 'ห้ามออกนอกบ้านโดยเด็ดขาด' };
+      if (aqi <= 50)  return {
+        desc: '😊 ดีมาก',
+        cls: 'aqi-good',
+        sub: 'คุณภาพอากาศดีเยี่ยม',
+        advice: 'เปิดหน้าต่าง ระบายอากาศได้ตามปกติ'
+      };
+      if (aqi <= 100) return {
+        desc: '🙂 ปานกลาง',
+        cls: 'aqi-moderate',
+        sub: 'ผู้ที่ไวต่อฝุ่นควรระวัง',
+        advice: 'ผู้ที่แพ้ง่ายควรหลีกเลี่ยงกิจกรรมนอกอาคารนานๆ'
+      };
+      if (aqi <= 150) return {
+        desc: '😷 ไม่ดีสำหรับกลุ่มเสี่ยง',
+        cls: 'aqi-sensitive',
+        sub: 'เด็ก ผู้สูงอายุ ควรระวัง',
+        advice: 'กลุ่มเสี่ยงควรใส่หน้ากากและลดเวลาอยู่นอกอาคาร'
+      };
+      if (aqi <= 200) return {
+        desc: '🤢 ไม่ดีต่อสุขภาพ',
+        cls: 'aqi-unhealthy',
+        sub: 'ทุกคนอาจได้รับผลกระทบ',
+        advice: 'ควรใส่หน้ากากเมื่อออกนอกอาคาร และปิดหน้าต่างเมื่อไม่จำเป็น'
+      };
+      if (aqi <= 300) return {
+        desc: '🚨 อันตรายมาก',
+        cls: 'aqi-very',
+        sub: 'หลีกเลี่ยงกิจกรรมกลางแจ้ง',
+        advice: 'หลีกเลี่ยงการออกนอกอาคาร และใช้หน้ากากกรองฝุ่นคุณภาพดี'
+      };
+      return {
+        desc: '☠️ อันตรายร้ายแรง',
+        cls: 'aqi-hazardous',
+        sub: 'ห้ามออกนอกบ้านโดยเด็ดขาด',
+        advice: 'อยู่ในอาคาร ปิดประตูหน้าต่าง และใช้เครื่องฟอกอากาศหากมี'
+      };
     }
 
     const a25 = aqiFromPM25(pm25);
@@ -1044,6 +1108,20 @@
     document.getElementById('aqiPM10desc').textContent = l10.desc;
     document.getElementById('aqiPM10sub').textContent  = l10.sub;
     document.getElementById('aqiPM10box').className    = 'aqi-item ' + l10.cls;
+
+    // Update top summary card (use worst AQI)
+    const worstAQI = Math.max(a25, a10);
+    const worstLevel = level(worstAQI);
+    const sumTitle = document.getElementById('summaryTitle');
+    const sumSub = document.getElementById('summarySub');
+    const sumLevel = document.getElementById('summaryLevel');
+    const sumExtra = document.getElementById('summaryExtra');
+    if (sumTitle && sumSub && sumLevel && sumExtra) {
+      sumTitle.textContent = 'ภาพรวมคุณภาพอากาศตอนนี้';
+      sumSub.textContent = worstLevel.advice || worstLevel.sub;
+      sumLevel.textContent = `${worstAQI} AQI — ${worstLevel.desc}`;
+      sumExtra.textContent = `สภาพ: ${worstLevel.sub} · PM2.5: ${pm25.toFixed(1)} μg/m³ | PM10: ${pm10.toFixed(1)} μg/m³`;
+    }
   }
 
 
@@ -1067,6 +1145,14 @@
       $('panelLine').querySelectorAll('.line-tab').forEach(t => { if (t.textContent === currentLine) t.classList.add('active'); });
       drawLineChart(allData, currentLine);
     }
+  }
+
+  function switchMainTab(panelId, btn) {
+    document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    document.querySelectorAll('.main-tab-panel').forEach(p => {
+      p.classList.toggle('active', p.id === panelId);
+    });
   }
 
   function switchLine(field, btn) {
@@ -1262,6 +1348,12 @@
   }
 
 
+  function setAlertPreset(val) {
+    const input = $('alertThreshold');
+    if (!input) return;
+    input.value = val;
+  }
+
   function exportCSV() {
     if (!allData || allData.length === 0) {
       alert('ยังไม่มีข้อมูลครับ กรุณาโหลดข้อมูลก่อน');
@@ -1395,6 +1487,25 @@
     doc.save('air-quality-report-' + new Date().toISOString().slice(0,10) + '.pdf');
   }
 
+  function captureDashboard() {
+    const target = document.querySelector('.wrapper');
+    if (!target || !window.html2canvas) {
+      alert('ไม่สามารถถ่าย Snapshot ได้');
+      return;
+    }
+    html2canvas(target, { scale: 2 }).then(canvas => {
+      canvas.toBlob(blob => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'air-quality-dashboard-' + new Date().toISOString().slice(0,10) + '.png';
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    });
+  }
+
   let lineChartInstance = null;
   let allData = [];
   let currentLine = 'PM2.5';
@@ -1405,14 +1516,6 @@
     'Temp':     '#ff6f00',
     'Humidity': '#1565c0'
   };
-
-  function switchLine(field) {
-    currentLine = field;
-    document.querySelectorAll('.line-tab').forEach(t => {
-      t.classList.toggle('active', t.textContent === field);
-    });
-    drawLineChart(allData, field);
-  }
 
   function drawLineChart(data, field) {
     if (!data || data.length === 0) return;
@@ -1436,6 +1539,20 @@
     const values = src.map(r => parseFloat(r[field] || 0));
     const color = lineColors[field] || '#2196f3';
 
+    // Highlight points above thresholds
+    const thresholds = {
+      'PM2.5': 37.5,
+      'PM10': 120,
+      'Temp': 35,
+      'Humidity': 80
+    };
+    const th = thresholds[field] || Infinity;
+    const pointColors = values.map(v => (v > th ? '#ef4444' : color));
+
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const textColor = isDark ? '#94a3b8' : '#90a4ae';
+    const gridColor = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(144,164,174,0.15)';
+
     const ctx = $('lineChart').getContext('2d');
     if (lineChartInstance) lineChartInstance.destroy();
 
@@ -1450,7 +1567,7 @@
           backgroundColor: color + '18',
           borderWidth: 2,
           pointRadius: 2,
-          pointBackgroundColor: color,
+          pointBackgroundColor: pointColors,
           fill: true,
           tension: 0.4
         }]
@@ -1468,12 +1585,12 @@
         },
         scales: {
           x: {
-            ticks: { color: '#90a4ae', font: { size: 10 }, maxTicksLimit: 8, maxRotation: 30 },
-            grid: { color: 'rgba(144,164,174,0.15)' }
+            ticks: { color: textColor, font: { size: 10 }, maxTicksLimit: 8, maxRotation: 30 },
+            grid: { color: gridColor }
           },
           y: {
-            ticks: { color: '#90a4ae', font: { size: 10 } },
-            grid: { color: 'rgba(144,164,174,0.15)' }
+            ticks: { color: textColor, font: { size: 10 } },
+            grid: { color: gridColor }
           }
         }
       }
@@ -1638,60 +1755,17 @@
     } catch { return ts; }
   }
 
-
-  // ── TOAST NOTIFICATION ──
-  function showToast(msg, type = 'info', duration = 3000) {
-    const icons = { info: 'ℹ️', success: '✅', error: '❌', warn: '⚠️' };
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = 'toast ' + type;
-    toast.innerHTML = `<span>${icons[type] || 'ℹ️'}</span><span>${msg}</span>`;
-    container.appendChild(toast);
-    setTimeout(() => {
-      toast.style.animation = 'toastOut 0.3s ease forwards';
-      setTimeout(() => toast.remove(), 300);
-    }, duration);
-  }
-
-  // ── SKELETON LOADING ──
-  function showSkeleton() {
-    const vals = ['valPM25','valPM10','valTemp','valHumi'];
-    vals.forEach(id => {
-      const el = $(id);
-      if (el) { el.dataset.real = el.textContent; el.innerHTML = '<span class="skeleton skeleton-val"></span>'; }
-    });
-    const badges = ['badgePM25','badgePM10'];
-    badges.forEach(id => {
-      const el = $(id);
-      if (el) el.innerHTML = '<span class="skeleton skeleton-badge"></span>';
-    });
-  }
-
-  function hideSkeleton() {
-    const vals = ['valPM25','valPM10','valTemp','valHumi'];
-    vals.forEach(id => {
-      const el = $(id);
-      if (el && el.querySelector('.skeleton')) el.innerHTML = el.dataset.real || '--';
-    });
-  }
-
-  // ── EMPTY STATE ──
-  function showEmptyState(container, msg = 'ไม่พบข้อมูล') {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">📭</div>
-        <div class="empty-title">${msg}</div>
-        <div class="empty-sub">ตรวจสอบการเชื่อมต่อหรือกด Refresh ครับ</div>
-      </div>`;
-  }
-
-
   function loadData() {
     const url = $('sheetUrl').value.trim();
     if (!url) { alert('กรุณากรอก URL ก่อนครับ'); return; }
 
+    const prog = document.getElementById('topProgress');
+    if (prog) {
+      prog.classList.add('active');
+      prog.style.width = '20%';
+    }
+
     $('statusText').textContent = 'กำลังโหลด...';
-    showSkeleton();
     $('tableWrap').innerHTML = '<div class="msg">⏳ กำลังโหลดข้อมูล...</div>';
 
     const old = document.getElementById('jsonp-script');
@@ -1705,6 +1779,10 @@
     script.onerror = () => {
       $('statusText').textContent = 'ERROR';
       $('tableWrap').innerHTML = '<div class="msg error">❌ โหลดข้อมูลไม่ได้ครับ</div>';
+      if (prog) {
+        prog.style.width = '100%';
+        setTimeout(() => { prog.classList.remove('active'); prog.style.width = '0'; }, 400);
+      }
     };
     document.body.appendChild(script);
   }
@@ -1712,7 +1790,7 @@
   function renderData(data) {
     try {
       if (!data || data.length === 0) {
-        showEmptyState($('tableWrap'), 'ไม่พบข้อมูลครับ');
+        $('tableWrap').innerHTML = '<div class="msg error">ไม่พบข้อมูลครับ</div>';
         return;
       }
 
@@ -1722,7 +1800,15 @@
       const temp = parseFloat(latest['Temp'] || latest['temp'] || 0);
       const humi = parseFloat(latest['Humidity'] || latest['humidity'] || 0);
 
+      const pm25El = $('valPM25');
+      const prevPM25 = parseFloat(pm25El.textContent) || 0;
       $('valPM25').textContent = pm25.toFixed(1);
+      if (Math.abs(pm25 - prevPM25) >= 5 && prevPM25 !== 0) {
+        pm25El.classList.remove('value-jump');
+        // retrigger animation
+        void pm25El.offsetWidth;
+        pm25El.classList.add('value-jump');
+      }
       checkAlert(pm25);
       calcAQI(pm25, pm10);
       updateStandards(pm25, pm10);
@@ -1770,11 +1856,16 @@
       document.getElementById("rowCount").textContent = data.length + " Records";
       renderTable(data);
       $('statusText').textContent = 'LIVE';
-      hideSkeleton();
-      showToast('อัปเดตข้อมูลแล้วครับ', 'success');
-      const loader = document.getElementById('pageLoader');
-      if (loader) loader.classList.add('hidden');
       $('lastUpdate').textContent = 'อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH');
+
+      const prog = document.getElementById('topProgress');
+      if (prog) {
+        prog.style.width = '100%';
+        setTimeout(() => {
+          prog.classList.remove('active');
+          prog.style.width = '0';
+        }, 400);
+      }
     } catch(e) {
       $('statusText').textContent = 'ERROR';
       $('tableWrap').innerHTML = '<div class="msg error">❌ เกิดข้อผิดพลาดครับ</div>';
@@ -1786,9 +1877,16 @@
 
 
   function smartRefresh() {
-    const url = 'https://script.google.com/macros/s/AKfycbzQVa8DL21CDDQTb4ffwNd8UQSwQXItb23IMkQjTQRzaFr73s_Vd2z28IJrZ5tJeRttCg/exec';
+    const url = $('sheetUrl').value.trim();
+    if (!url) return;
     const old = document.getElementById('jsonp-check');
     if (old) old.remove();
+
+    const prog = document.getElementById('topProgress');
+    if (prog) {
+      prog.classList.add('active');
+      prog.style.width = '25%';
+    }
 
     window._checkCallback = function(data) {
       if (!data || data.length === 0) return;
@@ -1799,6 +1897,12 @@
         renderData(data);
         $('lastUpdate').textContent =
           'อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH') + ' ✅ ข้อมูลใหม่';
+      } else if (prog) {
+        prog.style.width = '100%';
+        setTimeout(() => {
+          prog.classList.remove('active');
+          prog.style.width = '0';
+        }, 400);
       }
     };
 
@@ -1824,20 +1928,44 @@
     if (wrap && !wrap.contains(e.target)) closeDropdown();
   });
 
+  let refreshIntervalId = null;
+
   function refreshClick() {
     const btn = $('refreshBtn');
     btn.innerHTML = '<span class="spin">⟳</span> Refresh';
     btn.disabled = true;
     loadData();
-    setInterval(smartRefresh, 5 * 60 * 1000);
+    if (refreshIntervalId) {
+      clearInterval(refreshIntervalId);
+    }
+    refreshIntervalId = setInterval(smartRefresh, 5 * 60 * 1000);
     setTimeout(() => {
       btn.innerHTML = '⟳ Refresh';
       btn.disabled = false;
     }, 2000);
   }
 
+  function openModal() {
+    $('modalInput').value = $('sheetUrl').value;
+    $('modalOverlay').classList.add('open');
+    $('modalInput').focus();
+  }
+
+  function closeModal() {
+    $('modalOverlay').classList.remove('open');
+  }
+
   function closeModalOutside(e) {
     if (e.target === $('modalOverlay')) closeModal();
+  }
+
+  function saveUrl() {
+    const url = $('modalInput').value.trim();
+    if (!url) { alert('กรุณากรอก URL ก่อนครับ'); return; }
+    $('sheetUrl').value = url;
+    localStorage.setItem('sheetUrl', url);
+    closeModal();
+    loadData();
   }
 
   function toggleTheme() {
@@ -1856,6 +1984,8 @@
 
   window.onload = function() {
     $('sheetUrl').value = 'https://script.google.com/macros/s/AKfycbzQVa8DL21CDDQTb4ffwNd8UQSwQXItb23IMkQjTQRzaFr73s_Vd2z28IJrZ5tJeRttCg/exec';
+    const savedUrl = localStorage.getItem('sheetUrl');
+    if (savedUrl) $('sheetUrl').value = savedUrl;
     const saved = localStorage.getItem('theme');
     if (saved === 'dark') {
       document.documentElement.setAttribute('data-theme', 'dark');
@@ -1864,6 +1994,22 @@
     loadData();
 
   };
+
+  function toggleTvMode() {
+    const html = document.documentElement;
+    const btn = document.getElementById('tvToggleBtn');
+    const isOn = html.classList.toggle('tv-mode');
+    if (btn) {
+      btn.innerHTML = isOn ? '🖥️ โหมดปกติ' : '📺 โหมดหน้าจอใหญ่';
+    }
+    // When TV mode is on, always show Overview tab
+    if (isOn) {
+      const overviewTabBtn = document.getElementById('mainTabOverview');
+      if (overviewTabBtn) {
+        switchMainTab('tabOverview', overviewTabBtn);
+      }
+    }
+  }
 </script>
 </body>
 </html>
